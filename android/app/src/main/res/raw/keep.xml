@@ -1,0 +1,9 @@
+<?xml version="1.0" encoding="utf-8"?>
+<!--
+  Release builds shrink unused resources. audio_service looks up its
+  notification button icons by name at runtime (getIdentifier), which the
+  shrinker can't see, so without this they get stripped and the play/pause,
+  next and previous buttons vanish from the media notification.
+-->
+<resources xmlns:tools="http://schemas.android.com/tools"
+    tools:keep="@drawable/audio_service_*,@mipmap/ic_launcher" />

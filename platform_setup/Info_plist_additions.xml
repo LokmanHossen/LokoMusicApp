@@ -1,0 +1,11 @@
+<!-- ios/Runner/Info.plist, inside the top-level <dict>: -->
+<key>UIBackgroundModes</key>
+<array>
+    <string>audio</string>
+</array>
+
+<!-- Optional, for "Open in Spotify" (only needed if you add canLaunchUrl checks): -->
+<key>LSApplicationQueriesSchemes</key>
+<array>
+    <string>spotify</string>
+</array>

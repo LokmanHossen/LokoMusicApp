@@ -1,0 +1,38 @@
+<!-- android/app/src/main/AndroidManifest.xml -->
+<!-- 1) Add above <application>: -->
+<uses-permission android:name="android.permission.INTERNET"/>
+<uses-permission android:name="android.permission.WAKE_LOCK"/>
+<uses-permission android:name="android.permission.FOREGROUND_SERVICE"/>
+<uses-permission android:name="android.permission.FOREGROUND_SERVICE_MEDIA_PLAYBACK"/>
+<uses-permission android:name="android.permission.POST_NOTIFICATIONS"/>
+
+<!-- 2) Change the activity to the audio_service one: -->
+<!--    android:name="com.ryanheise.audioservice.AudioServiceActivity" -->
+
+<!-- 3) Add inside <application>: -->
+<service
+    android:name="com.ryanheise.audioservice.AudioService"
+    android:foregroundServiceType="mediaPlayback"
+    android:exported="true"
+    tools:ignore="Instantiatable">
+    <intent-filter>
+        <action android:name="android.media.browse.MediaBrowserService"/>
+    </intent-filter>
+</service>
+<receiver
+    android:name="com.ryanheise.audioservice.MediaButtonReceiver"
+    android:exported="true"
+    tools:ignore="Instantiatable">
+    <intent-filter>
+        <action android:name="android.intent.action.MEDIA_BUTTON"/>
+    </intent-filter>
+</receiver>
+<!-- Add xmlns:tools="http://schemas.android.com/tools" to the <manifest> tag. -->
+
+<!-- 4) For "Open in Spotify": add inside <manifest> (outside <application>): -->
+<queries>
+    <intent>
+        <action android:name="android.intent.action.VIEW"/>
+        <data android:scheme="https"/>
+    </intent>
+</queries>
