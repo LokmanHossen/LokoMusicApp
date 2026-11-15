@@ -19,9 +19,9 @@ import 'package:pulse_music/features/queue/presentation/queue_screen.dart';
 import 'package:pulse_music/features/search/presentation/search_screen.dart';
 import 'package:pulse_music/features/settings/presentation/settings_screen.dart';
 import 'package:pulse_music/features/tracks/presentation/list_screen.dart';
-import 'package:pulse_music/data/models/youtube_video.dart';
 import 'package:pulse_music/features/videos/presentation/video_list_screen.dart';
 import 'package:pulse_music/features/videos/presentation/video_player_screen.dart';
+import 'package:pulse_music/features/videos/presentation/video_widgets.dart';
 import 'package:pulse_music/shared/providers/youtube_providers.dart';
 import 'package:pulse_music/shared/widgets/app_backdrop.dart';
 
@@ -75,7 +75,14 @@ final routerProvider = Provider<GoRouter>((ref) {
       GoRoute(path: '/player', parentNavigatorKey: _rootKey, pageBuilder: (c, s) => _slideUp(s, const PlayerScreen())),
       GoRoute(path: '/queue', parentNavigatorKey: _rootKey, pageBuilder: (c, s) => _slideUp(s, const QueueScreen())),
       // Full-screen YouTube player, above the tabs and mini player.
-      GoRoute(path: '/video', parentNavigatorKey: _rootKey, builder: (c, s) => VideoPlayerScreen(video: s.extra as YouTubeVideo)),
+      GoRoute(
+        path: '/video',
+        parentNavigatorKey: _rootKey,
+        builder: (c, s) {
+          final a = s.extra as VideoPlayArgs;
+          return VideoPlayerScreen(video: a.video, list: a.list);
+        },
+      ),
     ],
   );
 });

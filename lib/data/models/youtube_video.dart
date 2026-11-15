@@ -46,6 +46,20 @@ class YouTubeVideo {
       {'id': id, 'title': title, 'channel': channel, 'thumbnail': thumbnail, 'duration': durationSeconds, 'publishedAt': publishedAt};
 }
 
+final _compilation = RegExp(
+  r'jukebox|mash\s?up|non\s?-?stop|\bmix\b|medley|collection|playlist|top\s?\d+|\bhits\b|best of|সব গান|গানগুলো|\blive\b',
+  caseSensitive: false,
+);
+
+/// True for a single song: 1.5 to 10 minutes long and not a compilation,
+/// mashup, live stream or "top 10" style list. Used for the "Songs" rows.
+bool isSingleSong(Map<String, dynamic> searchItem, int seconds) {
+  if (seconds < 90 || seconds > 600) return false;
+  final s = searchItem['snippet'];
+  final title = s is Map ? '${s['title'] ?? ''}' : '';
+  return !_compilation.hasMatch(unescapeHtml(title));
+}
+
 /// Parses an ISO 8601 duration such as "PT3M32S" or "PT1H2M" into seconds.
 int parseIsoDuration(String? iso) {
   if (iso == null) return 0;

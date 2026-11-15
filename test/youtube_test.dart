@@ -38,4 +38,19 @@ void main() {
     expect(again.title, v.title);
     expect(again.durationSeconds, 212);
   });
+
+  test('songs rows keep single songs and drop compilations', () {
+    Map<String, dynamic> item(String title) => {
+          'snippet': {'title': title}
+        };
+    // Real titles from live searches.
+    expect(isSingleSong(item('Sokhi Mon Bujhla Na | Imran Mahmudul | Rubaiya Esha'), 212), isTrue);
+    expect(isSingleSong(item('Pagol Naki | Bangla New Viral Song 2026'), 186), isTrue);
+    expect(isSingleSong(item('Romance like SRK | Mashup | Shah Rukh Khan'), 206), isFalse);
+    expect(isSingleSong(item('Hindi Sadabahar Geet | Old Is Gold Songs | Audio Jukebox'), 300), isFalse);
+    expect(isSingleSong(item('New Song 2026 | Top 10 Hindi Romantic Songs'), 300), isFalse);
+    // Length: 1.5 to 10 minutes.
+    expect(isSingleSong(item('Some song'), 60), isFalse);
+    expect(isSingleSong(item('Some song'), 1323), isFalse);
+  });
 }

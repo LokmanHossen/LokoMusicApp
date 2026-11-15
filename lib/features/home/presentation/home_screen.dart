@@ -148,7 +148,20 @@ class HomeScreen extends ConsumerWidget {
                 height: 222,
                 skeletonWidth: 160,
                 onRetry: () => ref.invalidate(youtubePopularProvider),
-                itemBuilder: (c, items, i) => VideoCard(video: items[i]),
+                onViewAll: () => context.openVideoList(const VideoListArgs.popular('Trending music videos')),
+                itemBuilder: (c, items, i) => VideoCard(video: items[i], list: items),
+              ),
+            // New Bangla and Hindi songs from YouTube (single songs, not
+            // compilations). Also plays in the embedded YouTube player.
+            if (ref.read(youtubeProvider).enabled)
+              AsyncSection<YouTubeVideo>(
+                title: 'New songs · YouTube',
+                value: ref.watch(youtubeHomeSongsProvider),
+                height: 222,
+                skeletonWidth: 160,
+                onRetry: () => ref.invalidate(youtubeHomeSongsProvider),
+                onViewAll: () => context.openVideoList(const VideoListArgs('New songs', youtubeHomeSongQuery, songs: true)),
+                itemBuilder: (c, items, i) => VideoCard(video: items[i], list: items),
               ),
             _trackSection(context, ref, 'Trending music', trendingProvider, src.trending()),
             _trackSection(context, ref, 'Popular tracks', popularProvider, src.trending(time: 'allTime')),

@@ -11,9 +11,15 @@ import 'package:pulse_music/shared/widgets/widgets.dart';
 /// Each page is one `search.list` call (100 quota units), so the next page
 /// loads only when the user scrolls to the end.
 class VideoResults extends ConsumerStatefulWidget {
-  const VideoResults({super.key, required this.query, this.language});
+  const VideoResults({super.key, required this.query, this.language, this.popular = false, this.songs = false});
   final String query;
   final MusicLanguage? language;
+
+  /// Show the trending music chart instead of searching [query].
+  final bool popular;
+
+  /// Single songs only (see isSingleSong).
+  final bool songs;
 
   @override
   ConsumerState<VideoResults> createState() => _VideoResultsState();
@@ -35,7 +41,7 @@ class _VideoResultsState extends ConsumerState<VideoResults> {
   @override
   void didUpdateWidget(VideoResults old) {
     super.didUpdateWidget(old);
-    if (old.query != widget.query || old.language != widget.language) _reset();
+    if (old.query != widget.query || old.language != widget.language || old.popular != widget.popular || old.songs != widget.songs) _reset();
   }
 
   void _reset() {
@@ -53,7 +59,10 @@ class _VideoResultsState extends ConsumerState<VideoResults> {
     if (_loading || _done) return;
     setState(() => _loading = true);
     try {
-      final page = await ref.read(youtubeProvider).searchVideos(widget.query, language: widget.language, pageToken: _next);
+      final yt = ref.read(youtubeProvider);
+      final page = widget.popular
+          ? await yt.popularMusicPage(maxResults: 25, pageToken: _next)
+          : await yt.searchVideos(widget.query, language: widget.language, pageToken: _next, songsOnly: widget.songs);
       if (!mounted) return;
       setState(() {
         _videos.addAll(page.videos.where((v) => _seen.add(v.id)));
@@ -82,7 +91,7 @@ class _VideoResultsState extends ConsumerState<VideoResults> {
         padding: const EdgeInsets.only(bottom: 24),
         itemCount: _videos.length + 1,
         itemBuilder: (c, i) {
-          if (i < _videos.length) return VideoTile(video: _videos[i]);
+          if (i < _videos.length) return VideoTile(video: _videos[i], list: _videos);
           if (_loading)
             return const Padding(padding: EdgeInsets.all(20), child: Center(child: CircularProgressIndicator(strokeWidth: 2.5)));
           if (_error != null) return Padding(padding: const EdgeInsets.all(12), child: ErrorState(message: _error!, onRetry: _load));
@@ -100,6 +109,6 @@ class VideoListScreen extends StatelessWidget {
   @override
   Widget build(BuildContext context) => Scaffold(
         appBar: AppBar(title: Text(args.title)),
-        body: VideoResults(query: args.query, language: args.language),
+        body: VideoResults(query: args.query, language: args.language, popular: args.popular, songs: args.songs),
       );
 }

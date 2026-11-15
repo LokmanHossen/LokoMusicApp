@@ -36,9 +36,13 @@ class YouTubeDataSource {
 
   /// Music videos (category 10) for [query], embeddable only, and longer than
   /// 30 seconds (the app hides anything 30 s or shorter).
-  Future<YouTubePage> searchVideos(String query, {MusicLanguage? language, String? pageToken, int maxResults = 20}) async {
+  Future<YouTubePage> searchVideos(String query,
+      {MusicLanguage? language, String? pageToken, int maxResults = 20, bool songsOnly = false}) async {
+    // Songs: fetch the maximum (same 100-unit cost) since many results are
+    // filtered out as compilations.
+    if (songsOnly) maxResults = 50;
     if (!enabled) return (videos: const <YouTubeVideo>[], nextPageToken: null);
-    final cacheKey = 'yt:${language?.code}:$query:${pageToken ?? ''}:$maxResults';
+    final cacheKey = 'yt:${songsOnly ? 'song' : 'video'}:${language?.code}:$query:${pageToken ?? ''}:$maxResults';
     final cached = _readCache(cacheKey);
     if (cached != null) return cached;
 
@@ -73,7 +77,8 @@ class YouTubeDataSource {
     final videos = [
       for (final i in items)
         if (details[(i['id'] as Map?)?['videoId']] case final d?)
-          if (d.embeddable && d.seconds > Track.maxHiddenSeconds) YouTubeVideo.fromSearch(i, durationSeconds: d.seconds),
+          if (d.embeddable && d.seconds > Track.maxHiddenSeconds && (!songsOnly || isSingleSong(i, d.seconds)))
+            YouTubeVideo.fromSearch(i, durationSeconds: d.seconds),
     ];
     final page = (videos: videos, nextPageToken: search['nextPageToken'] as String?);
     _writeCache(cacheKey, page);
@@ -83,11 +88,15 @@ class YouTubeDataSource {
   /// YouTube's most popular music videos in [regionCode] (the "Trending"
   /// music chart). Costs 1 quota unit instead of 100 for a search, so it is
   /// used on Home. Embeddable and longer-than-30 s videos only.
-  Future<List<YouTubeVideo>> popularMusic({String regionCode = 'BD', int maxResults = 20}) async {
-    if (!enabled) return const [];
-    final cacheKey = 'yt:popular:$regionCode:$maxResults';
+  Future<List<YouTubeVideo>> popularMusic({String regionCode = 'BD', int maxResults = 20}) async =>
+      (await popularMusicPage(regionCode: regionCode, maxResults: maxResults)).videos;
+
+  /// One page of the trending music chart ("View all"). Each page costs 1 unit.
+  Future<YouTubePage> popularMusicPage({String regionCode = 'BD', int maxResults = 20, String? pageToken}) async {
+    if (!enabled) return (videos: const <YouTubeVideo>[], nextPageToken: null);
+    final cacheKey = 'yt:popular:$regionCode:$maxResults:${pageToken ?? ''}';
     final cached = _readCache(cacheKey);
-    if (cached != null) return cached.videos;
+    if (cached != null) return cached;
 
     final res = await _get('/videos', {
       'part': 'snippet,contentDetails,status',
@@ -95,6 +104,7 @@ class YouTubeDataSource {
       'videoCategoryId': '10',
       'regionCode': regionCode,
       'maxResults': maxResults,
+      if (pageToken != null) 'pageToken': pageToken,
     });
     final videos = [
       for (final v in (res['items'] as List? ?? const []).whereType<Map>())
@@ -104,8 +114,9 @@ class YouTubeDataSource {
             durationSeconds: parseIsoDuration(v['contentDetails'] is Map ? (v['contentDetails'] as Map)['duration'] as String? : null),
           ),
     ].where((v) => v.durationSeconds > Track.maxHiddenSeconds).toList();
-    _writeCache(cacheKey, (videos: videos, nextPageToken: null));
-    return videos;
+    final page = (videos: videos, nextPageToken: res['nextPageToken'] as String?);
+    _writeCache(cacheKey, page);
+    return page;
   }
 
   YouTubePage? _readCache(String key) {

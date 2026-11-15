@@ -41,6 +41,7 @@ class _LanguageScreenState extends ConsumerState<LanguageScreen> {
     ref.invalidate(jamendoLanguageProvider);
     ref.invalidate(languageSectionPreviewsProvider);
     ref.invalidate(youtubeLanguageVideosProvider);
+    ref.invalidate(youtubeLanguageSongsProvider);
   }
 
   @override
@@ -157,7 +158,21 @@ class _LanguageScreenState extends ConsumerState<LanguageScreen> {
                   onRetry: () => ref.invalidate(youtubeLanguageVideosProvider(lang)),
                   onViewAll: () =>
                       context.openVideoList(VideoListArgs('${lang.label} music videos', youtubeLanguageQuery[lang]!, language: lang)),
-                  itemBuilder: (c, items, i) => VideoCard(video: items[i]),
+                  itemBuilder: (c, items, i) => VideoCard(video: items[i], list: items),
+                ),
+              ),
+            // Single songs from YouTube in this language (no compilations).
+            if (ref.read(youtubeProvider).enabled)
+              SliverToBoxAdapter(
+                child: AsyncSection<YouTubeVideo>(
+                  title: '${lang.label} songs · YouTube',
+                  value: ref.watch(youtubeLanguageSongsProvider(lang)),
+                  height: 222,
+                  skeletonWidth: 160,
+                  onRetry: () => ref.invalidate(youtubeLanguageSongsProvider(lang)),
+                  onViewAll: () => context.openVideoList(
+                      VideoListArgs('${lang.label} songs', youtubeSongQuery[lang]!, language: lang, songs: true)),
+                  itemBuilder: (c, items, i) => VideoCard(video: items[i], list: items),
                 ),
               ),
             for (final s in sections) SliverToBoxAdapter(child: section(s)),
