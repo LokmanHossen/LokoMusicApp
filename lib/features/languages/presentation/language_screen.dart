@@ -6,6 +6,9 @@ import 'package:pulse_music/core/router/nav.dart';
 import 'package:pulse_music/data/models/models.dart';
 import 'package:pulse_music/shared/providers/core_providers.dart';
 import 'package:pulse_music/shared/providers/data_providers.dart';
+import 'package:pulse_music/data/models/youtube_video.dart';
+import 'package:pulse_music/features/videos/presentation/video_widgets.dart';
+import 'package:pulse_music/shared/providers/youtube_providers.dart';
 import 'package:pulse_music/shared/widgets/widgets.dart';
 
 /// Discovery page for one language: its sections, an optional Jamendo row and
@@ -36,6 +39,8 @@ class _LanguageScreenState extends ConsumerState<LanguageScreen> {
     ref.invalidate(languageSectionArtistsProvider);
     ref.invalidate(languageSectionPlaylistsProvider);
     ref.invalidate(jamendoLanguageProvider);
+    ref.invalidate(languageSectionPreviewsProvider);
+    ref.invalidate(youtubeLanguageVideosProvider);
   }
 
   @override
@@ -76,6 +81,14 @@ class _LanguageScreenState extends ConsumerState<LanguageScreen> {
             onViewAll: () => context.openList(ListArgs.collections(s.title, src.languagePlaylists(lang, s))),
             itemBuilder: (c, items, i) => CollectionCard(collection: items[i], width: 140),
           );
+        case SectionKind.previews:
+          return AsyncSection<Track>(
+            title: s.title,
+            value: ref.watch(languageSectionPreviewsProvider(key)),
+            onRetry: () => ref.invalidate(languageSectionPreviewsProvider(key)),
+            onViewAll: () => context.openList(ListArgs.tracks(s.title, src.languagePreviews(lang, s))),
+            itemBuilder: (c, items, i) => TrackCard(track: items[i], onTap: () => actions.playTracks(items, index: i)),
+          );
       }
     }
 
@@ -89,7 +102,8 @@ class _LanguageScreenState extends ConsumerState<LanguageScreen> {
             flexibleSpace: FlexibleSpaceBar(
               title: Text(lang.label, style: const TextStyle(fontWeight: FontWeight.w800, color: Colors.white)),
               background: DecoratedBox(
-                decoration: BoxDecoration(gradient: LinearGradient(colors: lang.colors, begin: Alignment.topLeft, end: Alignment.bottomRight)),
+                decoration:
+                    BoxDecoration(gradient: LinearGradient(colors: lang.colors, begin: Alignment.topLeft, end: Alignment.bottomRight)),
                 child: Align(
                   alignment: Alignment.centerRight,
                   child: Padding(
@@ -132,6 +146,21 @@ class _LanguageScreenState extends ConsumerState<LanguageScreen> {
             ..._results(src.searchAll(_query, language: lang))
           else ...[
             for (final s in sections) SliverToBoxAdapter(child: section(s)),
+            // YouTube music videos: a separate row (YouTube data is never mixed
+            // into the other lists). Plays only in the embedded video player.
+            if (ref.read(youtubeProvider).enabled)
+              SliverToBoxAdapter(
+                child: AsyncSection<YouTubeVideo>(
+                  title: 'Music videos · YouTube',
+                  value: ref.watch(youtubeLanguageVideosProvider(lang)),
+                  height: 222,
+                  skeletonWidth: 160,
+                  onRetry: () => ref.invalidate(youtubeLanguageVideosProvider(lang)),
+                  onViewAll: () =>
+                      context.openVideoList(VideoListArgs('${lang.label} music videos', youtubeLanguageQuery[lang]!, language: lang)),
+                  itemBuilder: (c, items, i) => VideoCard(video: items[i]),
+                ),
+              ),
             if (hasJamendo)
               SliverToBoxAdapter(
                 child: AsyncSection<Track>(
@@ -174,7 +203,7 @@ class _SourceNote extends StatelessWidget {
   Widget build(BuildContext context) => Padding(
         padding: const EdgeInsets.fromLTRB(16, 24, 16, 32),
         child: Text(
-          'Songs come from Audius, where artists upload their own music. Language is detected from titles and tags, so some songs may be missing or misplaced.',
+          'Songs come from Audius, where artists upload their own music. Language is detected from titles and tags, so some songs may be missing or misplaced. Music videos come from YouTube and play only in the video player while the app is open.',
           style: TextStyle(color: Theme.of(context).colorScheme.onSurfaceVariant, fontSize: 12),
         ),
       );

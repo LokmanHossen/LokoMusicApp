@@ -60,14 +60,15 @@ class JamendoDataSource {
       final headers = body['headers'];
       if (headers is Map && headers['status'] != 'success') {
         final msg = '${headers['error_message'] ?? ''}'.trim();
-        throw Failure(msg.isEmpty ? 'Jamendo request failed.' : 'Jamendo: $msg', code: headers['code'] is int ? headers['code'] as int : null);
+        throw Failure(msg.isEmpty ? 'Jamendo request failed.' : 'Jamendo: $msg',
+            code: headers['code'] is int ? headers['code'] as int : null);
       }
       final results = body['results'];
       final tracks = results is List
           ? results
               .whereType<Map>()
               .map((m) => Track.fromJamendo(Map<String, dynamic>.from(m), language: language?.code))
-              .where((t) => t.isPlayable)
+              .where((t) => t.isPlayable && !t.isTooShort)
               .toList()
           : const <Track>[];
       _cache[key] = (at: DateTime.now(), tracks: tracks);

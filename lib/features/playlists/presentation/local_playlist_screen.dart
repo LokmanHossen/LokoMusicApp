@@ -65,13 +65,16 @@ class LocalPlaylistScreen extends ConsumerWidget {
           child: PlayShuffleRow(
             onPlay: () => actions.playTracks(p.tracks),
             onShuffle: () => actions.shuffle(p.tracks),
-            extras: [IconButton(tooltip: 'Add to queue', onPressed: () => actions.addAllToQueue(p.tracks), icon: const Icon(Icons.queue_music))],
+            extras: [
+              IconButton(tooltip: 'Add to queue', onPressed: () => actions.addAllToQueue(p.tracks), icon: const Icon(Icons.queue_music))
+            ],
           ),
         ),
         if (p.tracks.isEmpty)
           const SliverFillRemaining(
             hasScrollBody: false,
-            child: EmptyState(icon: Icons.library_add_outlined, title: 'This playlist is empty', message: 'Use "Add to playlist" from any track menu.'),
+            child: EmptyState(
+                icon: Icons.library_add_outlined, title: 'This playlist is empty', message: 'Use "Add to playlist" from any track menu.'),
           )
         else
           trackSliver(p.tracks, (i) => actions.playTracks(p.tracks, index: i), onRemove: (Track t) => notifier.removeTrack(p.id, t.id)),

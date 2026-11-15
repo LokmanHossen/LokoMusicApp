@@ -26,8 +26,9 @@ class AudioPlayerService extends BaseAudioHandler with SeekHandler {
     _init();
   }
 
-  /// Resolves a playable, full-length URL for a track of any provider.
-  final String Function(Track track) streamUrl;
+  /// Resolves a playable URL for a track of any provider, right before it
+  /// plays (so short-lived links, like Deezer previews, are always fresh).
+  final Future<String> Function(Track track) streamUrl;
   final LocalStore store;
   final AudioPlayer player = AudioPlayer();
 
@@ -142,8 +143,10 @@ class AudioPlayerService extends BaseAudioHandler with SeekHandler {
     store.putString(StoreKeys.queueIndex, '$i');
     store.putString(StoreKeys.position, '0');
     try {
-      // Resolved at play time, so an Audius redirect is always fresh.
-      await player.setAudioSource(AudioSource.uri(Uri.parse(streamUrl(trackFromItem(item))), tag: item));
+      // Resolved at play time, so redirects and signed links are fresh.
+      final url = await streamUrl(trackFromItem(item));
+      if (token != _loadToken) return;
+      await player.setAudioSource(AudioSource.uri(Uri.parse(url), tag: item));
       if (token != _loadToken) return;
       _sourceLoaded = true;
       final resume = _resumePosition;

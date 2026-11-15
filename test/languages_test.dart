@@ -75,6 +75,68 @@ void main() {
     expect(Track.fromJamendo({'id': '1', 'name': 'No audio'}).isPlayable, isFalse);
   });
 
+  test('Deezer results map to previews with no stored (expiring) URL', () {
+    // Shape from a live https://api.deezer.com/search response.
+    final t = Track.fromDeezer({
+      'id': 4379989631,
+      'readable': true,
+      'title': 'Tu Mil Jaaye (From "KING")',
+      'title_short': 'Tu Mil Jaaye (From "KING")',
+      'link': 'https://www.deezer.com/track/4379989631',
+      'duration': 315,
+      'preview': 'https://cdnt-preview.dzcdn.net/api/1/1/x.mp3?hdnea=exp=1',
+      'artist': {'id': 1452924, 'name': 'Sachin-Jigar'},
+      'album': {'id': 1, 'title': 'KING', 'cover_medium': 'https://e/m.jpg', 'cover_xl': 'https://e/xl.jpg'},
+    }, language: 'hi');
+    expect(t.id, 'deezer:4379989631');
+    expect(t.provider, MusicProviders.deezer);
+    expect(t.previewOnly, isTrue);
+    expect(t.streamUrl, isNull, reason: 'Deezer links expire; resolved at play time');
+    expect(t.isPlayable, isTrue);
+    expect(t.duration, previewSeconds);
+    expect(t.externalUrl, 'https://www.deezer.com/track/4379989631');
+    expect(t.language, 'hi');
+    expect(t.hasDetailPages, isFalse);
+
+    final again = Track.fromMap(t.toMap());
+    expect(again.previewOnly, isTrue);
+    expect(again.externalUrl, t.externalUrl);
+    expect(Track.fromDeezer({'id': 1, 'title': 'x', 'readable': false, 'preview': 'p'}).isPlayable, isFalse);
+  });
+
+  test('iTunes results map to previews that link to Apple Music', () {
+    // Shape from a live https://itunes.apple.com/search?country=in response.
+    final t = Track.fromITunes({
+      'kind': 'song',
+      'trackId': 1653219849,
+      'trackName': 'Apna Bana Le (From "Bhediya")',
+      'artistName': 'Arijit Singh, Sachin-Jigar & Amitabh Bhattacharya',
+      'collectionName': 'Apna Bana Le (From "Bhediya") - Single',
+      'trackViewUrl': 'https://music.apple.com/in/album/x?i=1653219849',
+      'previewUrl': 'https://audio-ssl.itunes.apple.com/x.m4a',
+      'artworkUrl100': 'https://is1-ssl.mzstatic.com/image/thumb/a/100x100bb.jpg',
+      'primaryGenreName': 'Bollywood',
+    });
+    expect(t.id, 'itunes:1653219849');
+    expect(t.previewOnly, isTrue);
+    expect(t.streamUrl, 'https://audio-ssl.itunes.apple.com/x.m4a');
+    expect(t.art.forSize(900), endsWith('1000x1000bb.jpg'));
+    expect(t.externalUrl, startsWith('https://music.apple.com/'));
+    expect(MusicProviders.label(t.provider), 'Apple Music');
+  });
+
+  test('songs of 30 seconds or less are hidden; unknown length is kept', () {
+    Track d(int s) => Track(id: 'x', title: 't', artist: const Artist(id: '', name: 'a'), duration: s);
+    expect(d(20).isTooShort, isTrue);
+    expect(d(30).isTooShort, isTrue);
+    expect(d(31).isTooShort, isFalse);
+    expect(d(0).isTooShort, isFalse);
+    // Every Deezer/iTunes preview is 30 s, so all of them are hidden.
+    expect(Track.fromITunes({'trackId': 1, 'trackName': 'p', 'previewUrl': 'u'}).isTooShort, isTrue);
+    // Audius parsing applies the rule too.
+    expect(Track.fromApi({'id': 'r1', 'title': 'Ringtone', 'duration': 20}).isTooShort, isTrue);
+  });
+
   test('tracks saved before multi-source support load as Audius', () {
     final old = Track.fromMap({
       'id': 'D7KyD',

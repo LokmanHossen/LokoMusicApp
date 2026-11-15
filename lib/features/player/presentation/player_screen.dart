@@ -5,7 +5,9 @@ import 'package:flutter_riverpod/flutter_riverpod.dart';
 import 'package:go_router/go_router.dart';
 import 'package:pulse_music/core/services/audio_player_service.dart';
 import 'package:pulse_music/core/theme/app_theme.dart';
+import 'package:pulse_music/core/utils/external_link.dart';
 import 'package:pulse_music/core/utils/format.dart';
+import 'package:pulse_music/data/models/models.dart';
 import 'package:pulse_music/shared/providers/core_providers.dart';
 import 'package:pulse_music/shared/widgets/widgets.dart';
 
@@ -74,12 +76,15 @@ class PlayerScreen extends ConsumerWidget {
                     final side = math.min(box.maxWidth, box.maxHeight);
                     return AnimatedSwitcher(
                       duration: const Duration(milliseconds: 350),
-                      transitionBuilder: (child, anim) => FadeTransition(opacity: anim, child: ScaleTransition(scale: Tween(begin: 0.94, end: 1.0).animate(anim), child: child)),
+                      transitionBuilder: (child, anim) => FadeTransition(
+                          opacity: anim, child: ScaleTransition(scale: Tween(begin: 0.94, end: 1.0).animate(anim), child: child)),
                       child: DecoratedBox(
                         key: ValueKey(track.id),
                         decoration: BoxDecoration(
                           borderRadius: BorderRadius.circular(22),
-                          boxShadow: [BoxShadow(color: AppColors.accent.withValues(alpha: 0.35), blurRadius: 40, offset: const Offset(0, 18))],
+                          boxShadow: [
+                            BoxShadow(color: AppColors.accent.withValues(alpha: 0.35), blurRadius: 40, offset: const Offset(0, 18))
+                          ],
                         ),
                         child: Artwork(image: track.art, width: side, radius: 22),
                       ),
@@ -91,13 +96,32 @@ class PlayerScreen extends ConsumerWidget {
               Row(children: [
                 Expanded(
                   child: Column(crossAxisAlignment: CrossAxisAlignment.start, children: [
-                    Text(track.title, maxLines: 1, overflow: TextOverflow.ellipsis, style: Theme.of(context).textTheme.headlineSmall?.copyWith(fontWeight: FontWeight.w800)),
+                    Text(track.title,
+                        maxLines: 1,
+                        overflow: TextOverflow.ellipsis,
+                        style: Theme.of(context).textTheme.headlineSmall?.copyWith(fontWeight: FontWeight.w800)),
                     const SizedBox(height: 2),
-                    Text(track.artist.name, maxLines: 1, overflow: TextOverflow.ellipsis, style: TextStyle(color: scheme.onSurfaceVariant, fontSize: 16)),
+                    Text(track.artist.name,
+                        maxLines: 1, overflow: TextOverflow.ellipsis, style: TextStyle(color: scheme.onSurfaceVariant, fontSize: 16)),
                   ]),
                 ),
                 FavoriteTrackButton(track: track, size: 28),
               ]),
+              // Deezer/iTunes tracks: make clear this is a short preview and
+              // link to the full song (Apple requires previews to promote it).
+              if (track.previewOnly)
+                Padding(
+                  padding: const EdgeInsets.only(top: 6),
+                  child: Row(children: [
+                    Icon(Icons.timer_outlined, size: 16, color: scheme.onSurfaceVariant),
+                    const SizedBox(width: 6),
+                    Expanded(
+                      child: Text('30-second preview from ${MusicProviders.label(track.provider)}',
+                          style: TextStyle(color: scheme.onSurfaceVariant, fontSize: 13)),
+                    ),
+                    if (track.externalUrl != null) TextButton(onPressed: () => openFullSong(track), child: const Text('Full song')),
+                  ]),
+                ),
               const SizedBox(height: 4),
               _SeekBar(fallbackSeconds: track.duration),
               Row(mainAxisAlignment: MainAxisAlignment.spaceBetween, children: [
@@ -106,7 +130,8 @@ class PlayerScreen extends ConsumerWidget {
                   icon: Icon(Icons.shuffle, color: shuffle ? AppColors.accent : null),
                   onPressed: () => handler.setShuffleMode(shuffle ? AudioServiceShuffleMode.none : AudioServiceShuffleMode.all),
                 ),
-                IconButton(tooltip: 'Previous', iconSize: 40, icon: const Icon(Icons.skip_previous_rounded), onPressed: handler.skipToPrevious),
+                IconButton(
+                    tooltip: 'Previous', iconSize: 40, icon: const Icon(Icons.skip_previous_rounded), onPressed: handler.skipToPrevious),
                 SizedBox(
                   width: 72,
                   height: 72,
@@ -125,7 +150,8 @@ class PlayerScreen extends ConsumerWidget {
                     AudioServiceRepeatMode.none => 'Repeat off',
                     _ => 'Repeat all',
                   },
-                  icon: Icon(repeat == AudioServiceRepeatMode.one ? Icons.repeat_one : Icons.repeat, color: repeat == AudioServiceRepeatMode.none ? null : AppColors.accent),
+                  icon: Icon(repeat == AudioServiceRepeatMode.one ? Icons.repeat_one : Icons.repeat,
+                      color: repeat == AudioServiceRepeatMode.none ? null : AppColors.accent),
                   onPressed: () => handler.setRepeatMode(switch (repeat) {
                     AudioServiceRepeatMode.none => AudioServiceRepeatMode.all,
                     AudioServiceRepeatMode.all => AudioServiceRepeatMode.one,
@@ -140,7 +166,8 @@ class PlayerScreen extends ConsumerWidget {
                   initialValue: speed,
                   onSelected: handler.setSpeed,
                   itemBuilder: (_) => [for (final s in _speeds) PopupMenuItem(value: s, child: Text('${s}x'))],
-                  child: Padding(padding: const EdgeInsets.all(12), child: Text('${speed}x', style: const TextStyle(fontWeight: FontWeight.w700))),
+                  child: Padding(
+                      padding: const EdgeInsets.all(12), child: Text('${speed}x', style: const TextStyle(fontWeight: FontWeight.w700))),
                 ),
                 IconButton(tooltip: 'Volume', icon: const Icon(Icons.volume_up_outlined), onPressed: () => _showVolume(context, handler)),
                 IconButton(tooltip: 'Queue', icon: const Icon(Icons.queue_music), onPressed: () => context.push('/queue')),

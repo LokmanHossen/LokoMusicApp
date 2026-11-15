@@ -17,7 +17,9 @@ class LibraryScreen extends ConsumerWidget {
       child: Scaffold(
         appBar: AppBar(
           title: const Text('Your library', style: TextStyle(fontWeight: FontWeight.w800)),
-          actions: [IconButton(tooltip: 'Settings', icon: const Icon(Icons.settings_outlined), onPressed: () => context.openDetail('settings'))],
+          actions: [
+            IconButton(tooltip: 'Settings', icon: const Icon(Icons.settings_outlined), onPressed: () => context.openDetail('settings'))
+          ],
           bottom: const TabBar(isScrollable: true, tabAlignment: TabAlignment.start, tabs: [
             Tab(text: 'Tracks'),
             Tab(text: 'Albums'),
@@ -70,7 +72,8 @@ class _TracksTab extends ConsumerWidget {
   @override
   Widget build(BuildContext context, WidgetRef ref) => _TrackList(
         tracks: ref.watch(favoritesProvider).tracks,
-        empty: const EmptyState(icon: Icons.favorite_border, title: 'No favorite tracks yet', message: 'Tap the heart on any track to keep it here.'),
+        empty: const EmptyState(
+            icon: Icons.favorite_border, title: 'No favorite tracks yet', message: 'Tap the heart on any track to keep it here.'),
       );
 }
 
@@ -91,7 +94,8 @@ class _CollectionsTab extends ConsumerWidget {
     }
     return GridView.builder(
       padding: const EdgeInsets.all(16),
-      gridDelegate: const SliverGridDelegateWithMaxCrossAxisExtent(maxCrossAxisExtent: 200, mainAxisSpacing: 16, crossAxisSpacing: 12, childAspectRatio: 0.78),
+      gridDelegate: const SliverGridDelegateWithMaxCrossAxisExtent(
+          maxCrossAxisExtent: 200, mainAxisSpacing: 16, crossAxisSpacing: 12, childAspectRatio: 0.78),
       itemCount: items.length,
       itemBuilder: (c, i) => CollectionCard(collection: items[i]),
     );

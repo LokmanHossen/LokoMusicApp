@@ -38,7 +38,8 @@ class QueueScreen extends ConsumerWidget {
         ],
       ),
       body: items.isEmpty
-          ? const EmptyState(icon: Icons.queue_music, title: 'Your queue is empty', message: 'Use "Play next" or "Add to queue" on any track.')
+          ? const EmptyState(
+              icon: Icons.queue_music, title: 'Your queue is empty', message: 'Use "Play next" or "Add to queue" on any track.')
           : ReorderableListView.builder(
               buildDefaultDragHandles: false,
               itemCount: items.length,
@@ -52,7 +53,11 @@ class QueueScreen extends ConsumerWidget {
                 return Dismissible(
                   key: ValueKey('q-$i-${track.id}'),
                   direction: DismissDirection.endToStart,
-                  background: Container(color: scheme.errorContainer, alignment: Alignment.centerRight, padding: const EdgeInsets.only(right: 20), child: const Icon(Icons.delete_outline)),
+                  background: Container(
+                      color: scheme.errorContainer,
+                      alignment: Alignment.centerRight,
+                      padding: const EdgeInsets.only(right: 20),
+                      child: const Icon(Icons.delete_outline)),
                   onDismissed: (_) => handler.removeAt(i),
                   child: ListTile(
                     tileColor: isCurrent ? AppColors.accent.withValues(alpha: 0.12) : null,
@@ -67,9 +72,14 @@ class QueueScreen extends ConsumerWidget {
                           child: Icon(playing ? Icons.graphic_eq : Icons.pause, color: AppColors.accent),
                         ),
                     ]),
-                    title: Text(track.title, maxLines: 1, overflow: TextOverflow.ellipsis, style: TextStyle(fontWeight: FontWeight.w600, color: isCurrent ? AppColors.accent : null)),
-                    subtitle: Text('${track.artist.name}${track.duration > 0 ? ' • ${fmtDuration(track.duration)}' : ''}', maxLines: 1, overflow: TextOverflow.ellipsis),
-                    trailing: ReorderableDragStartListener(index: i, child: const Padding(padding: EdgeInsets.all(8), child: Icon(Icons.drag_handle))),
+                    title: Text(track.title,
+                        maxLines: 1,
+                        overflow: TextOverflow.ellipsis,
+                        style: TextStyle(fontWeight: FontWeight.w600, color: isCurrent ? AppColors.accent : null)),
+                    subtitle: Text('${track.artist.name}${track.duration > 0 ? ' • ${fmtDuration(track.duration)}' : ''}',
+                        maxLines: 1, overflow: TextOverflow.ellipsis),
+                    trailing: ReorderableDragStartListener(
+                        index: i, child: const Padding(padding: EdgeInsets.all(8), child: Icon(Icons.drag_handle))),
                   ),
                 );
               },

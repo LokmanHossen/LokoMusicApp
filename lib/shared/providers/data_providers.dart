@@ -35,8 +35,7 @@ class PagedState<T> {
   final bool loading, hasMore;
   final String? error;
 
-  PagedState<T> copyWith({List<T>? items, bool? loading, bool? hasMore, String? error, bool clearError = false}) =>
-      PagedState<T>(
+  PagedState<T> copyWith({List<T>? items, bool? loading, bool? hasMore, String? error, bool clearError = false}) => PagedState<T>(
         items: items ?? this.items,
         loading: loading ?? this.loading,
         hasMore: hasMore ?? this.hasMore,
@@ -96,12 +95,12 @@ class PagedController<T> extends AutoDisposeFamilyNotifier<PagedState<T>, PagedS
   }
 }
 
-final pagedTracksProvider = NotifierProvider.autoDispose
-    .family<PagedController<Track>, PagedState<Track>, PagedSource<Track>>(PagedController<Track>.new);
+final pagedTracksProvider =
+    NotifierProvider.autoDispose.family<PagedController<Track>, PagedState<Track>, PagedSource<Track>>(PagedController<Track>.new);
 final pagedCollectionsProvider = NotifierProvider.autoDispose
     .family<PagedController<Collection>, PagedState<Collection>, PagedSource<Collection>>(PagedController<Collection>.new);
-final pagedArtistsProvider = NotifierProvider.autoDispose
-    .family<PagedController<Artist>, PagedState<Artist>, PagedSource<Artist>>(PagedController<Artist>.new);
+final pagedArtistsProvider =
+    NotifierProvider.autoDispose.family<PagedController<Artist>, PagedState<Artist>, PagedSource<Artist>>(PagedController<Artist>.new);
 
 // ---- Source factories ------------------------------------------------------------
 
@@ -165,6 +164,13 @@ class Sources {
         idOf: _artistId,
       );
 
+  /// 30-second previews (iTunes + Deezer) for a language section.
+  PagedSource<Track> languagePreviews(MusicLanguage language, LanguageSection s) => PagedSource(
+        'lang:${s.id}',
+        (o, l) => music.sectionPreviews(s, language, limit: l, offset: o),
+        idOf: _trackId,
+      );
+
   PagedSource<Track> jamendoLanguage(MusicLanguage language) => PagedSource(
         'jamendo:${language.code}',
         (o, l) => music.jamendoByLanguage(language, limit: l, offset: o),
@@ -178,32 +184,31 @@ class Sources {
 
   PagedSource<Track> recommended() => PagedSource('recommended', (o, l) => repo.trending(time: 'month', limit: l, offset: o));
 
-  PagedSource<Track> searchTracks(String q, {String? genre, String sort = 'relevant'}) => PagedSource(
-      'search:t:$q:$genre:$sort', (o, l) => repo.searchTracks(q, genre: genre, sort: sort, limit: l, offset: o));
+  PagedSource<Track> searchTracks(String q, {String? genre, String sort = 'relevant'}) =>
+      PagedSource('search:t:$q:$genre:$sort', (o, l) => repo.searchTracks(q, genre: genre, sort: sort, limit: l, offset: o));
 
-  PagedSource<Artist> searchArtists(String q) =>
-      PagedSource('search:a:$q', (o, l) => repo.searchArtists(q, limit: l, offset: o));
+  PagedSource<Artist> searchArtists(String q) => PagedSource('search:a:$q', (o, l) => repo.searchArtists(q, limit: l, offset: o));
 
-  PagedSource<Collection> searchAlbums(String q) => PagedSource('search:al:$q', pageSize: 40, (o, l) async =>
-      (await repo.searchCollections(q, limit: l, offset: o)).where((c) => c.isAlbum).toList());
+  PagedSource<Collection> searchAlbums(String q) => PagedSource(
+      'search:al:$q',
+      pageSize: 40,
+      (o, l) async => (await repo.searchCollections(q, limit: l, offset: o)).where((c) => c.isAlbum).toList());
 
-  PagedSource<Collection> searchPlaylists(String q) => PagedSource('search:p:$q', pageSize: 40, (o, l) async =>
-      (await repo.searchCollections(q, limit: l, offset: o)).where((c) => !c.isAlbum).toList());
+  PagedSource<Collection> searchPlaylists(String q) => PagedSource(
+      'search:p:$q',
+      pageSize: 40,
+      (o, l) async => (await repo.searchCollections(q, limit: l, offset: o)).where((c) => !c.isAlbum).toList());
 
-  PagedSource<Collection> popularAlbums() =>
-      PagedSource('albums', pageSize: 40, (o, l) => repo.albums(limit: l, offset: o));
+  PagedSource<Collection> popularAlbums() => PagedSource('albums', pageSize: 40, (o, l) => repo.albums(limit: l, offset: o));
 
-  PagedSource<Collection> popularPlaylists() =>
-      PagedSource('playlists', pageSize: 40, (o, l) => repo.playlists(limit: l, offset: o));
+  PagedSource<Collection> popularPlaylists() => PagedSource('playlists', pageSize: 40, (o, l) => repo.playlists(limit: l, offset: o));
 
   PagedSource<Track> userTracks(String id, {String sort = 'plays'}) =>
       PagedSource('user:$id:t:$sort', (o, l) => repo.userTracks(id, sort: sort, limit: l, offset: o));
 
-  PagedSource<Collection> userAlbums(String id) =>
-      PagedSource('user:$id:al', (o, l) => repo.userAlbums(id, limit: l, offset: o));
+  PagedSource<Collection> userAlbums(String id) => PagedSource('user:$id:al', (o, l) => repo.userAlbums(id, limit: l, offset: o));
 
-  PagedSource<Collection> userPlaylists(String id) =>
-      PagedSource('user:$id:p', (o, l) => repo.userPlaylists(id, limit: l, offset: o));
+  PagedSource<Collection> userPlaylists(String id) => PagedSource('user:$id:p', (o, l) => repo.userPlaylists(id, limit: l, offset: o));
 }
 
 final jamendoProvider = Provider<JamendoDataSource>((ref) => JamendoDataSource());
@@ -227,8 +232,7 @@ final languageSectionPlaylistsProvider =
   return lists.where((c) => collectionMatchesLanguage(c, language)).take(20).toList();
 });
 
-final languageSectionArtistsProvider =
-    FutureProvider.autoDispose.family<List<Artist>, (MusicLanguage, LanguageSection)>((ref, a) async {
+final languageSectionArtistsProvider = FutureProvider.autoDispose.family<List<Artist>, (MusicLanguage, LanguageSection)>((ref, a) async {
   final (language, section) = a;
   final tracks = await ref.watch(musicRepositoryProvider).sectionTracks(section, limit: 40);
   final seen = <String>{};
@@ -238,17 +242,20 @@ final languageSectionArtistsProvider =
   ].take(15).toList();
 });
 
-final jamendoLanguageProvider = FutureProvider.autoDispose.family<List<Track>, MusicLanguage>(
-    (ref, language) => ref.watch(musicRepositoryProvider).jamendoByLanguage(language, limit: 20));
+final languageSectionPreviewsProvider = FutureProvider.autoDispose.family<List<Track>, (MusicLanguage, LanguageSection)>((ref, a) {
+  final (language, section) = a;
+  return ref.watch(musicRepositoryProvider).sectionPreviews(section, language, limit: 24);
+});
+
+final jamendoLanguageProvider = FutureProvider.autoDispose
+    .family<List<Track>, MusicLanguage>((ref, language) => ref.watch(musicRepositoryProvider).jamendoByLanguage(language, limit: 20));
 
 // ---- Home sections (HomeController) ---------------------------------------------
 
 final trendingProvider = FutureProvider<List<Track>>((ref) => ref.watch(repositoryProvider).trending(time: 'week'));
-final popularProvider =
-    FutureProvider<List<Track>>((ref) => ref.watch(repositoryProvider).trending(time: 'allTime'));
+final popularProvider = FutureProvider<List<Track>>((ref) => ref.watch(repositoryProvider).trending(time: 'allTime'));
 final newReleasesProvider = FutureProvider<List<Track>>((ref) => ref.watch(repositoryProvider).underground());
-final recommendedProvider =
-    FutureProvider<List<Track>>((ref) => ref.watch(repositoryProvider).trending(time: 'month'));
+final recommendedProvider = FutureProvider<List<Track>>((ref) => ref.watch(repositoryProvider).trending(time: 'month'));
 
 final featuredArtistsProvider = FutureProvider<List<Artist>>((ref) async {
   final tracks = await ref.watch(popularProvider.future);
@@ -260,8 +267,7 @@ final featuredArtistsProvider = FutureProvider<List<Artist>>((ref) async {
 });
 
 final popularAlbumsProvider = FutureProvider<List<Collection>>((ref) => ref.watch(repositoryProvider).albums(limit: 40));
-final popularPlaylistsProvider =
-    FutureProvider<List<Collection>>((ref) => ref.watch(repositoryProvider).playlists(limit: 40));
+final popularPlaylistsProvider = FutureProvider<List<Collection>>((ref) => ref.watch(repositoryProvider).playlists(limit: 40));
 
 /// Most frequent genre in recently played / favourite tracks.
 final topGenreProvider = Provider<String>((ref) {
@@ -274,23 +280,21 @@ final topGenreProvider = Provider<String>((ref) {
   return (counts.entries.toList()..sort((a, b) => b.value.compareTo(a.value))).first.key;
 });
 
-final madeForYouProvider = FutureProvider<List<Track>>(
-    (ref) => ref.watch(repositoryProvider).trending(time: 'month', genre: ref.watch(topGenreProvider)));
+final madeForYouProvider =
+    FutureProvider<List<Track>>((ref) => ref.watch(repositoryProvider).trending(time: 'month', genre: ref.watch(topGenreProvider)));
 
 // ---- Detail screens ---------------------------------------------------------------
 
-final artistProvider =
-    FutureProvider.autoDispose.family<Artist, String>((ref, id) => ref.watch(repositoryProvider).user(id));
+final artistProvider = FutureProvider.autoDispose.family<Artist, String>((ref, id) => ref.watch(repositoryProvider).user(id));
 final artistPopularProvider = FutureProvider.autoDispose
     .family<List<Track>, String>((ref, id) => ref.watch(repositoryProvider).userTracks(id, sort: 'plays', limit: 30));
 final artistLatestProvider = FutureProvider.autoDispose
     .family<List<Track>, String>((ref, id) => ref.watch(repositoryProvider).userTracks(id, sort: 'date', limit: 15));
-final artistAlbumsProvider = FutureProvider.autoDispose
-    .family<List<Collection>, String>((ref, id) => ref.watch(repositoryProvider).userAlbums(id, limit: 20));
-final artistPlaylistsProvider = FutureProvider.autoDispose
-    .family<List<Collection>, String>((ref, id) => ref.watch(repositoryProvider).userPlaylists(id, limit: 20));
+final artistAlbumsProvider =
+    FutureProvider.autoDispose.family<List<Collection>, String>((ref, id) => ref.watch(repositoryProvider).userAlbums(id, limit: 20));
+final artistPlaylistsProvider =
+    FutureProvider.autoDispose.family<List<Collection>, String>((ref, id) => ref.watch(repositoryProvider).userPlaylists(id, limit: 20));
 
-final collectionProvider =
-    FutureProvider.autoDispose.family<Collection, String>((ref, id) => ref.watch(repositoryProvider).collection(id));
-final collectionTracksProvider = FutureProvider.autoDispose
-    .family<List<Track>, String>((ref, id) => ref.watch(repositoryProvider).collectionTracks(id));
+final collectionProvider = FutureProvider.autoDispose.family<Collection, String>((ref, id) => ref.watch(repositoryProvider).collection(id));
+final collectionTracksProvider =
+    FutureProvider.autoDispose.family<List<Track>, String>((ref, id) => ref.watch(repositoryProvider).collectionTracks(id));

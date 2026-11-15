@@ -17,8 +17,7 @@ class FavoritesState {
   List<Collection> get albums => collections.where((c) => c.isAlbum).toList();
   List<Collection> get playlists => collections.where((c) => !c.isAlbum).toList();
 
-  FavoritesState copyWith({List<Track>? tracks, List<Collection>? collections, List<Artist>? artists}) =>
-      FavoritesState(
+  FavoritesState copyWith({List<Track>? tracks, List<Collection>? collections, List<Artist>? artists}) => FavoritesState(
         tracks: tracks ?? this.tracks,
         collections: collections ?? this.collections,
         artists: artists ?? this.artists,
@@ -53,8 +52,7 @@ class FavoritesController extends Notifier<FavoritesState> {
   }
 
   void toggleCollection(Collection c) {
-    final list =
-        state.hasCollection(c.id) ? state.collections.where((x) => x.id != c.id).toList() : [c, ...state.collections];
+    final list = state.hasCollection(c.id) ? state.collections.where((x) => x.id != c.id).toList() : [c, ...state.collections];
     state = state.copyWith(collections: list);
     _s.putMaps(StoreKeys.favCollections, list.map((e) => e.toMap()).toList());
   }
@@ -117,8 +115,7 @@ class LocalPlaylistsController extends Notifier<List<LocalPlaylist>> {
     return id;
   }
 
-  void rename(String id, String name) =>
-      _save([for (final p in state) p.id == id ? p.copyWith(name: name) : p]);
+  void rename(String id, String name) => _save([for (final p in state) p.id == id ? p.copyWith(name: name) : p]);
 
   void delete(String id) => _save(state.where((p) => p.id != id).toList());
 
@@ -150,8 +147,7 @@ class LocalPlaylistsController extends Notifier<List<LocalPlaylist>> {
       ]);
 }
 
-final localPlaylistsProvider =
-    NotifierProvider<LocalPlaylistsController, List<LocalPlaylist>>(LocalPlaylistsController.new);
+final localPlaylistsProvider = NotifierProvider<LocalPlaylistsController, List<LocalPlaylist>>(LocalPlaylistsController.new);
 
 // ---- Search history ----------------------------------------------------------
 

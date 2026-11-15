@@ -21,7 +21,8 @@ class ShellScaffold extends ConsumerWidget {
             width: double.infinity,
             color: scheme.errorContainer,
             padding: const EdgeInsets.symmetric(vertical: 6),
-            child: Text("You're offline. Streaming needs a connection.", textAlign: TextAlign.center, style: TextStyle(color: scheme.onErrorContainer, fontSize: 12)),
+            child: Text("You're offline. Streaming needs a connection.",
+                textAlign: TextAlign.center, style: TextStyle(color: scheme.onErrorContainer, fontSize: 12)),
           ),
         AnimatedSize(duration: const Duration(milliseconds: 220), alignment: Alignment.bottomCenter, child: const MiniPlayer()),
         NavigationBar(

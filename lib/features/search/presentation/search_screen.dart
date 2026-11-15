@@ -3,6 +3,8 @@ import 'package:flutter/material.dart';
 import 'package:flutter_riverpod/flutter_riverpod.dart';
 import 'package:pulse_music/core/constants/categories.dart';
 import 'package:pulse_music/core/constants/languages.dart';
+import 'package:pulse_music/features/videos/presentation/video_list_screen.dart';
+import 'package:pulse_music/shared/providers/youtube_providers.dart';
 import 'package:pulse_music/core/router/nav.dart';
 import 'package:pulse_music/data/models/models.dart';
 import 'package:pulse_music/shared/providers/core_providers.dart';
@@ -106,7 +108,8 @@ class _SearchScreenState extends ConsumerState<SearchScreen> {
             child: ListView(scrollDirection: Axis.horizontal, padding: const EdgeInsets.symmetric(horizontal: 16), children: [
               Padding(
                 padding: const EdgeInsets.only(right: 8),
-                child: ChoiceChip(label: const Text('All genres'), selected: _genre == null, onSelected: (_) => setState(() => _genre = null)),
+                child:
+                    ChoiceChip(label: const Text('All genres'), selected: _genre == null, onSelected: (_) => setState(() => _genre = null)),
               ),
               for (final g in searchGenres)
                 Padding(
@@ -118,7 +121,11 @@ class _SearchScreenState extends ConsumerState<SearchScreen> {
           Expanded(
             child: _query.isEmpty
                 ? _Suggestions(text: _text, onPick: _pick)
-                : _Results(query: _query, genre: _genre, language: _language, onPlayed: () => ref.read(searchHistoryProvider.notifier).add(_query)),
+                : _Results(
+                    query: _query,
+                    genre: _genre,
+                    language: _language,
+                    onPlayed: () => ref.read(searchHistoryProvider.notifier).add(_query)),
           ),
         ]),
       ),
@@ -137,7 +144,8 @@ class _Suggestions extends ConsumerWidget {
     final typed = text.trim().toLowerCase();
     final items = typed.isEmpty ? history : history.where((h) => h.toLowerCase().contains(typed)).toList();
     if (history.isEmpty && typed.isEmpty) {
-      return const EmptyState(icon: Icons.search, title: 'Find your next favorite', message: 'Search across tracks, artists, albums and playlists.');
+      return const EmptyState(
+          icon: Icons.search, title: 'Find your next favorite', message: 'Search across tracks, artists, albums and playlists.');
     }
     return ListView(children: [
       if (typed.isEmpty)
@@ -153,7 +161,8 @@ class _Suggestions extends ConsumerWidget {
           leading: Icon(typed.isEmpty ? Icons.history : Icons.search),
           title: Text(h),
           onTap: () => onPick(h),
-          trailing: IconButton(icon: const Icon(Icons.close, size: 18), onPressed: () => ref.read(searchHistoryProvider.notifier).remove(h)),
+          trailing:
+              IconButton(icon: const Icon(Icons.close, size: 18), onPressed: () => ref.read(searchHistoryProvider.notifier).remove(h)),
         ),
       if (typed.isNotEmpty && items.isEmpty)
         const Padding(padding: EdgeInsets.all(24), child: Center(child: Text('Keep typing to search…'))),
@@ -171,10 +180,21 @@ class _Results extends ConsumerWidget {
   @override
   Widget build(BuildContext context, WidgetRef ref) {
     final src = ref.read(sourcesProvider);
+    final videos = ref.read(youtubeProvider).enabled;
     return DefaultTabController(
-      length: 4,
+      length: videos ? 5 : 4,
       child: Column(children: [
-        const TabBar(isScrollable: false, tabs: [Tab(text: 'Tracks'), Tab(text: 'Artists'), Tab(text: 'Albums'), Tab(text: 'Playlists')]),
+        TabBar(
+          isScrollable: videos,
+          tabAlignment: videos ? TabAlignment.start : null,
+          tabs: [
+            const Tab(text: 'Tracks'),
+            const Tab(text: 'Artists'),
+            const Tab(text: 'Albums'),
+            const Tab(text: 'Playlists'),
+            if (videos) const Tab(text: 'Videos'),
+          ],
+        ),
         Expanded(
           child: TabBarView(children: [
             // Tracks: all providers, merged and de-duplicated.
@@ -183,6 +203,10 @@ class _Results extends ConsumerWidget {
             _ArtistResults(source: src.searchArtists(query)),
             _CollectionResults(source: src.searchAlbumsIn(query, language), emptyTitle: 'No albums found', icon: Icons.album_outlined),
             _CollectionResults(source: src.searchPlaylistsIn(query, language), emptyTitle: 'No playlists found', icon: Icons.queue_music),
+            // YouTube music videos, in their own tab (never mixed with the
+            // other results). Only searched when this tab is opened, since
+            // each YouTube search uses 1% of the app's daily quota.
+            if (videos) VideoResults(query: query, language: language),
           ]),
         ),
       ]),

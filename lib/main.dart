@@ -6,6 +6,8 @@ import 'package:pulse_music/core/network/audius_client.dart';
 import 'package:pulse_music/core/services/audio_player_service.dart';
 import 'package:pulse_music/core/services/local_store.dart';
 import 'package:pulse_music/core/theme/app_theme.dart';
+import 'package:pulse_music/data/datasources/deezer_datasource.dart';
+import 'package:pulse_music/data/models/models.dart';
 import 'package:pulse_music/features/splash/presentation/splash_view.dart';
 import 'package:pulse_music/shared/providers/core_providers.dart';
 
@@ -35,11 +37,16 @@ class _BootstrapState extends State<Bootstrap> {
     final started = DateTime.now();
     final store = await LocalStore.open();
     final client = AudiusClient();
+    final deezer = DeezerDataSource();
     final handler = await AudioService.init(
       builder: () => AudioPlayerService(
-        // Jamendo (and any future provider) tracks carry their own URL;
-        // Audius tracks get the stream endpoint, which redirects to the file.
-        streamUrl: (t) => t.streamUrl ?? client.streamUrl(t.id),
+        streamUrl: (t) async {
+          // Deezer preview links expire, so fetch a fresh one each time.
+          if (t.provider == MusicProviders.deezer) return deezer.previewUrl(t.id);
+          // Jamendo and iTunes tracks carry their own URL; Audius tracks get
+          // the stream endpoint, which redirects to the audio file.
+          return t.streamUrl ?? client.streamUrl(t.id);
+        },
         store: store,
       ),
       config: const AudioServiceConfig(
@@ -73,7 +80,11 @@ class _BootstrapState extends State<Bootstrap> {
           debugShowCheckedModeBanner: false,
           theme: AppTheme.dark(),
           home: snap.hasError
-              ? Scaffold(body: Center(child: Padding(padding: const EdgeInsets.all(24), child: Text('Could not start the app.\n${snap.error}', textAlign: TextAlign.center))))
+              ? Scaffold(
+                  body: Center(
+                      child: Padding(
+                          padding: const EdgeInsets.all(24),
+                          child: Text('Could not start the app.\n${snap.error}', textAlign: TextAlign.center))))
               : const SplashView(),
         );
       },

@@ -4,6 +4,7 @@ import 'package:pulse_music/core/constants/categories.dart';
 import 'package:pulse_music/core/constants/languages.dart';
 import 'package:pulse_music/data/models/models.dart';
 import 'package:pulse_music/shared/providers/data_providers.dart';
+import 'package:pulse_music/shared/providers/youtube_providers.dart';
 
 /// Arguments for the reusable "view all" list screen. Exactly one source is set.
 class ListArgs {
@@ -42,5 +43,6 @@ extension DetailNav on BuildContext {
   void openGenre(Category c) => openDetail('genre/${c.key}');
   void openList(ListArgs args) => openDetail('list', extra: args);
   void openLanguage(MusicLanguage l) => openDetail('language/${l.code}');
+  void openVideoList(VideoListArgs args) => openDetail('videos', extra: args);
   void openLocalPlaylist(String id) => openDetail('playlist/$id');
 }

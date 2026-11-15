@@ -19,7 +19,8 @@ class ArtistScreen extends ConsumerWidget {
     return Scaffold(
       body: artistAsync.when(
         loading: () => const _ArtistSkeleton(),
-        error: (e, _) => Scaffold(appBar: AppBar(), body: ErrorState(message: e.toString(), onRetry: () => ref.invalidate(artistProvider(id)))),
+        error: (e, _) =>
+            Scaffold(appBar: AppBar(), body: ErrorState(message: e.toString(), onRetry: () => ref.invalidate(artistProvider(id)))),
         data: (artist) => _ArtistBody(artist: artist),
       ),
     );
@@ -32,7 +33,10 @@ class _ArtistSkeleton extends StatelessWidget {
   Widget build(BuildContext context) => Scaffold(
         appBar: AppBar(),
         body: ListView(children: [
-          const Padding(padding: EdgeInsets.all(16), child: Row(children: [ShimmerBox(width: 84, height: 84, circle: true), SizedBox(width: 16), ShimmerBox(width: 180, height: 20)])),
+          const Padding(
+              padding: EdgeInsets.all(16),
+              child: Row(
+                  children: [ShimmerBox(width: 84, height: 84, circle: true), SizedBox(width: 16), ShimmerBox(width: 180, height: 20)])),
           for (var i = 0; i < 6; i++) const TileSkeleton(),
         ]),
       );
@@ -61,9 +65,14 @@ class _ArtistBody extends ConsumerWidget {
             if (!artist.cover.isEmpty)
               Artwork(image: artist.cover, radius: 0)
             else
-              DecoratedBox(decoration: BoxDecoration(gradient: LinearGradient(colors: [AppColors.accent.withValues(alpha: 0.6), AppColors.accentWarm.withValues(alpha: 0.4)]))),
+              DecoratedBox(
+                  decoration: BoxDecoration(
+                      gradient:
+                          LinearGradient(colors: [AppColors.accent.withValues(alpha: 0.6), AppColors.accentWarm.withValues(alpha: 0.4)]))),
             const DecoratedBox(
-              decoration: BoxDecoration(gradient: LinearGradient(begin: Alignment.topCenter, end: Alignment.bottomCenter, colors: [Colors.transparent, Colors.black87])),
+              decoration: BoxDecoration(
+                  gradient: LinearGradient(
+                      begin: Alignment.topCenter, end: Alignment.bottomCenter, colors: [Colors.transparent, Colors.black87])),
             ),
           ]),
         ),
@@ -78,11 +87,17 @@ class _ArtistBody extends ConsumerWidget {
               Expanded(
                 child: Column(crossAxisAlignment: CrossAxisAlignment.start, children: [
                   Row(children: [
-                    Flexible(child: Text(artist.name, maxLines: 2, overflow: TextOverflow.ellipsis, style: Theme.of(context).textTheme.headlineSmall?.copyWith(fontWeight: FontWeight.w800))),
-                    if (artist.verified) const Padding(padding: EdgeInsets.only(left: 6), child: Icon(Icons.verified, size: 20, color: AppColors.accent)),
+                    Flexible(
+                        child: Text(artist.name,
+                            maxLines: 2,
+                            overflow: TextOverflow.ellipsis,
+                            style: Theme.of(context).textTheme.headlineSmall?.copyWith(fontWeight: FontWeight.w800))),
+                    if (artist.verified)
+                      const Padding(padding: EdgeInsets.only(left: 6), child: Icon(Icons.verified, size: 20, color: AppColors.accent)),
                   ]),
                   const SizedBox(height: 2),
-                  Text('${fmtCount(artist.followers)} followers • ${artist.trackCount} tracks', style: TextStyle(color: scheme.onSurfaceVariant)),
+                  Text('${fmtCount(artist.followers)} followers • ${artist.trackCount} tracks',
+                      style: TextStyle(color: scheme.onSurfaceVariant)),
                 ]),
               ),
             ]),
@@ -102,10 +117,14 @@ class _ArtistBody extends ConsumerWidget {
           ],
         ),
       ),
-      SliverToBoxAdapter(child: SectionHeader(title: 'Popular tracks', onViewAll: () => context.openList(ListArgs.tracks('${artist.name} · Popular', src.userTracks(id))))),
+      SliverToBoxAdapter(
+          child: SectionHeader(
+              title: 'Popular tracks', onViewAll: () => context.openList(ListArgs.tracks('${artist.name} · Popular', src.userTracks(id))))),
       popular.when(
         loading: () => SliverList.builder(itemCount: 5, itemBuilder: (_, __) => const TileSkeleton()),
-        error: (e, _) => SliverToBoxAdapter(child: SizedBox(height: 140, child: ErrorState(message: e.toString(), onRetry: () => ref.invalidate(artistPopularProvider(id))))),
+        error: (e, _) => SliverToBoxAdapter(
+            child:
+                SizedBox(height: 140, child: ErrorState(message: e.toString(), onRetry: () => ref.invalidate(artistPopularProvider(id))))),
         data: (tracks) => tracks.isEmpty
             ? const SliverToBoxAdapter(child: SizedBox(height: 140, child: EmptyState(icon: Icons.music_off, title: 'No tracks yet')))
             : trackSliver(tracks.take(5).toList(), (i) => actions.playTracks(tracks, index: i)),

@@ -32,6 +32,7 @@ MusicLanguage? detectLanguage(Iterable<String?> texts) {
 
 /// Key used to spot the same song coming from two providers.
 String songKey(String title, String artist) {
-  String norm(String s) => s.toLowerCase().replaceAll(RegExp(r'\(.*?\)|\[.*?\]'), '').replaceAll(RegExp(r'[^\p{L}\p{N}]+', unicode: true), '');
+  String norm(String s) =>
+      s.toLowerCase().replaceAll(RegExp(r'\(.*?\)|\[.*?\]'), '').replaceAll(RegExp(r'[^\p{L}\p{N}]+', unicode: true), '');
   return '${norm(title)}|${norm(artist)}';
 }

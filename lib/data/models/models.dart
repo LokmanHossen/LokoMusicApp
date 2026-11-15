@@ -113,7 +113,22 @@ class Artist {
 abstract final class MusicProviders {
   static const audius = 'audius';
   static const jamendo = 'jamendo';
+
+  /// Deezer and iTunes only allow 30-second previews (no full songs).
+  static const deezer = 'deezer';
+  static const itunes = 'itunes';
+
+  /// Name shown to users ("Preview · Apple Music").
+  static String label(String provider) => switch (provider) {
+        jamendo => 'Jamendo',
+        deezer => 'Deezer',
+        itunes => 'Apple Music',
+        _ => 'Audius',
+      };
 }
+
+/// Length of a Deezer/iTunes preview clip.
+const previewSeconds = 30;
 
 String? _optStr(dynamic v) => v is String && v.trim().isNotEmpty ? v : null;
 
@@ -135,6 +150,8 @@ class Track {
     this.streamUrl,
     this.album,
     this.language,
+    this.previewOnly = false,
+    this.externalUrl,
   });
 
   final String id, title;
@@ -155,13 +172,82 @@ class Track {
   /// ISO 639-1 code from [MusicLanguage] (detected or provider-supplied).
   final String? language;
 
+  /// True when only a short preview can be played in the app (Deezer,
+  /// iTunes). The full song is at [externalUrl], on the provider's own app.
+  final bool previewOnly;
+
+  /// The song's page on its provider (e.g. Apple Music, Deezer), if any.
+  final String? externalUrl;
+
   bool get isPlayable => streamable;
+
+  /// Songs of 30 seconds or less (previews, ringtones, clips) are not shown
+  /// anywhere in the app. Unknown length (0) is kept.
+  bool get isTooShort => duration > 0 && duration <= maxHiddenSeconds;
+
+  static const maxHiddenSeconds = 30;
 
   /// True for tracks whose artist and album pages exist in the app (Audius).
   bool get hasDetailPages => provider == MusicProviders.audius;
 
+  /// Maps a Deezer `/search` or `/track/{id}` result. Deezer's preview URLs
+  /// expire after a few hours, so none is stored: the player asks Deezer for a
+  /// fresh one at play time (see the player's stream resolver).
+  factory Track.fromDeezer(Map<String, dynamic> j, {String? language}) {
+    final album = j['album'] is Map ? Map<String, dynamic>.from(j['album'] as Map) : const <String, dynamic>{};
+    final artist = j['artist'] is Map ? Map<String, dynamic>.from(j['artist'] as Map) : const <String, dynamic>{};
+    final title = _str(j['title_short'], _str(j['title'], 'Untitled'));
+    final artistName = _str(artist['name'], 'Unknown artist');
+    final albumName = _optStr(album['title']);
+    return Track(
+      id: 'deezer:${_str(j['id'])}',
+      title: title,
+      artist: Artist(id: '', name: artistName),
+      art: ImageSet(
+          small: _optStr(album['cover_small']),
+          medium: _optStr(album['cover_medium']),
+          large: _optStr(album['cover_xl']) ?? _optStr(album['cover_big'])),
+      duration: previewSeconds,
+      album: albumName,
+      provider: MusicProviders.deezer,
+      streamable: j['readable'] != false && _optStr(j['preview']) != null,
+      previewOnly: true,
+      externalUrl: _optStr(j['link']),
+      language: language ?? detectLanguage([title, artistName, albumName])?.code,
+    );
+  }
+
+  /// Maps an iTunes Search API song. Preview URLs are stable, so they are
+  /// stored. Apple only allows previews for promoting the song, so the app
+  /// always offers "Open in Apple Music" next to them.
+  factory Track.fromITunes(Map<String, dynamic> j, {String? language}) {
+    final title = _str(j['trackName'], 'Untitled');
+    final artistName = _str(j['artistName'], 'Unknown artist');
+    final albumName = _optStr(j['collectionName']);
+    final art100 = _optStr(j['artworkUrl100']);
+    String? sized(int px) => art100?.replaceFirst('100x100bb', '${px}x${px}bb');
+    final preview = _optStr(j['previewUrl']);
+    return Track(
+      id: 'itunes:${_str(j['trackId'])}',
+      title: title,
+      artist: Artist(id: '', name: artistName),
+      art: art100 == null ? const ImageSet() : ImageSet(small: sized(150), medium: sized(480), large: sized(1000)),
+      duration: previewSeconds,
+      genre: _optStr(j['primaryGenreName']),
+      album: albumName,
+      releaseDate: _optStr(j['releaseDate']),
+      provider: MusicProviders.itunes,
+      streamUrl: preview,
+      streamable: preview != null,
+      previewOnly: true,
+      externalUrl: _optStr(j['trackViewUrl']),
+      language: language ?? detectLanguage([title, artistName, albumName])?.code,
+    );
+  }
+
   factory Track.fromApi(Map<String, dynamic> j) {
-    final user = j['user'] is Map ? Artist.fromApi(Map<String, dynamic>.from(j['user'] as Map)) : const Artist(id: '', name: 'Unknown artist');
+    final user =
+        j['user'] is Map ? Artist.fromApi(Map<String, dynamic>.from(j['user'] as Map)) : const Artist(id: '', name: 'Unknown artist');
     var art = ImageSet.fromApi(j['artwork']);
     if (art.isEmpty) art = user.avatar;
     final title = _str(j['title'], 'Untitled');
@@ -216,11 +302,15 @@ class Track {
         streamUrl: _optStr(j['streamUrl']),
         album: _optStr(j['album']),
         language: _optStr(j['language']),
+        previewOnly: j['previewOnly'] == true,
+        externalUrl: _optStr(j['externalUrl']),
       );
 
   Map<String, dynamic> toMap() => {
         'id': id,
         'title': title,
+        'previewOnly': previewOnly,
+        'externalUrl': externalUrl,
         'artist': artist.toMap(),
         'art': art.toMap(),
         'duration': duration,
@@ -263,7 +353,8 @@ class Collection {
   final int trackCount, plays, favorites;
 
   factory Collection.fromApi(Map<String, dynamic> j) {
-    final owner = j['user'] is Map ? Artist.fromApi(Map<String, dynamic>.from(j['user'] as Map)) : const Artist(id: '', name: 'Unknown artist');
+    final owner =
+        j['user'] is Map ? Artist.fromApi(Map<String, dynamic>.from(j['user'] as Map)) : const Artist(id: '', name: 'Unknown artist');
     var art = ImageSet.fromApi(j['artwork']);
     if (art.isEmpty) art = owner.avatar;
     final name = _str(j['playlist_name'], 'Untitled');
@@ -326,10 +417,7 @@ class LocalPlaylist {
   factory LocalPlaylist.fromMap(Map<String, dynamic> j) => LocalPlaylist(
         id: _str(j['id']),
         name: _str(j['name']),
-        tracks: ((j['tracks'] as List?) ?? const [])
-            .whereType<Map>()
-            .map((e) => Track.fromMap(Map<String, dynamic>.from(e)))
-            .toList(),
+        tracks: ((j['tracks'] as List?) ?? const []).whereType<Map>().map((e) => Track.fromMap(Map<String, dynamic>.from(e))).toList(),
       );
 
   Map<String, dynamic> toMap() => {'id': id, 'name': name, 'tracks': tracks.map((t) => t.toMap()).toList()};

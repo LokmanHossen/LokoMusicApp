@@ -25,6 +25,12 @@ class AppConfig {
   static const String jamendoClientId = String.fromEnvironment('JAMENDO_CLIENT_ID');
   static bool get jamendoEnabled => jamendoClientId.isNotEmpty;
 
+  /// YouTube Data API v3 key, passed at build time from config/secrets.json
+  /// (`--dart-define-from-file=config/secrets.json`, set up in
+  /// .vscode/launch.json). When empty, the YouTube features are hidden.
+  static const String youtubeApiKey = String.fromEnvironment('YOUTUBE_API_KEY');
+  static bool get youtubeEnabled => youtubeApiKey.isNotEmpty;
+
   static List<String> get hosts => [
         _primary,
         if (_fallback.isNotEmpty && _fallback != _primary) _fallback,

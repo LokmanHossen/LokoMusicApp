@@ -9,11 +9,9 @@ class AudiusRepository {
   List<Map<String, dynamic>> _maps(dynamic d) =>
       d is List ? d.whereType<Map>().map((e) => Map<String, dynamic>.from(e)).toList() : const [];
 
-  List<Track> _tracks(dynamic d) =>
-      _maps(d).map(Track.fromApi).where((t) => t.streamable && t.id.isNotEmpty).toList();
+  List<Track> _tracks(dynamic d) => _maps(d).map(Track.fromApi).where((t) => t.streamable && t.id.isNotEmpty && !t.isTooShort).toList();
 
-  List<Collection> _collections(dynamic d) =>
-      _maps(d).map(Collection.fromApi).where((c) => c.id.isNotEmpty).toList();
+  List<Collection> _collections(dynamic d) => _maps(d).map(Collection.fromApi).where((c) => c.id.isNotEmpty).toList();
 
   // ---- Tracks --------------------------------------------------------------
 
@@ -25,10 +23,9 @@ class AudiusRepository {
       _tracks(await _c.get('/tracks/trending/underground', query: {'limit': limit, 'offset': offset}));
 
   /// [sort]: relevant | popular | recent
-  Future<List<Track>> searchTracks(String query,
-          {String? genre, String sort = 'relevant', int limit = 20, int offset = 0}) async =>
-      _tracks(await _c.get('/tracks/search',
-          query: {'query': query, 'genre': genre, 'sort_method': sort, 'limit': limit, 'offset': offset}));
+  Future<List<Track>> searchTracks(String query, {String? genre, String sort = 'relevant', int limit = 20, int offset = 0}) async =>
+      _tracks(
+          await _c.get('/tracks/search', query: {'query': query, 'genre': genre, 'sort_method': sort, 'limit': limit, 'offset': offset}));
 
   // ---- Users ---------------------------------------------------------------
 

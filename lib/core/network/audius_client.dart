@@ -46,9 +46,7 @@ class AudiusClient {
       'app_name': AppConfig.appName,
       if (AppConfig.apiKey.isNotEmpty) 'api_key': AppConfig.apiKey,
     };
-    return Uri.parse('${_hosts[_host % _hosts.length]}/tracks/$trackId/stream')
-        .replace(queryParameters: params)
-        .toString();
+    return Uri.parse('${_hosts[_host % _hosts.length]}/tracks/$trackId/stream').replace(queryParameters: params).toString();
   }
 
   void clearCache() => _cache.clear();

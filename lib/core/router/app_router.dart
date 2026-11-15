@@ -19,6 +19,10 @@ import 'package:pulse_music/features/queue/presentation/queue_screen.dart';
 import 'package:pulse_music/features/search/presentation/search_screen.dart';
 import 'package:pulse_music/features/settings/presentation/settings_screen.dart';
 import 'package:pulse_music/features/tracks/presentation/list_screen.dart';
+import 'package:pulse_music/data/models/youtube_video.dart';
+import 'package:pulse_music/features/videos/presentation/video_list_screen.dart';
+import 'package:pulse_music/features/videos/presentation/video_player_screen.dart';
+import 'package:pulse_music/shared/providers/youtube_providers.dart';
 import 'package:pulse_music/shared/widgets/app_backdrop.dart';
 
 final _rootKey = GlobalKey<NavigatorState>(debugLabel: 'root');
@@ -37,6 +41,7 @@ List<RouteBase> _detailRoutes() => [
         builder: (c, s) => LanguageScreen(language: MusicLanguage.fromCode(s.pathParameters['code']) ?? MusicLanguage.english),
       ),
       GoRoute(path: 'list', builder: (c, s) => ListScreen(args: s.extra as ListArgs)),
+      GoRoute(path: 'videos', builder: (c, s) => VideoListScreen(args: s.extra as VideoListArgs)),
       GoRoute(path: 'playlist/:id', builder: (c, s) => LocalPlaylistScreen(id: s.pathParameters['id']!)),
       GoRoute(path: 'settings', builder: (c, s) => const SettingsScreen()),
     ];
@@ -69,6 +74,8 @@ final routerProvider = Provider<GoRouter>((ref) {
       ),
       GoRoute(path: '/player', parentNavigatorKey: _rootKey, pageBuilder: (c, s) => _slideUp(s, const PlayerScreen())),
       GoRoute(path: '/queue', parentNavigatorKey: _rootKey, pageBuilder: (c, s) => _slideUp(s, const QueueScreen())),
+      // Full-screen YouTube player, above the tabs and mini player.
+      GoRoute(path: '/video', parentNavigatorKey: _rootKey, builder: (c, s) => VideoPlayerScreen(video: s.extra as YouTubeVideo)),
     ],
   );
 });

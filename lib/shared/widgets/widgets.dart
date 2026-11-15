@@ -4,6 +4,7 @@ import 'package:flutter_riverpod/flutter_riverpod.dart';
 import 'package:pulse_music/core/error/failure.dart';
 import 'package:pulse_music/core/router/nav.dart';
 import 'package:pulse_music/core/theme/app_theme.dart';
+import 'package:pulse_music/core/utils/external_link.dart';
 import 'package:pulse_music/core/utils/format.dart';
 import 'package:pulse_music/core/utils/spotify_link.dart';
 import 'package:pulse_music/core/utils/ui.dart';
@@ -181,7 +182,8 @@ class EmptyState extends StatelessWidget {
 }
 
 /// Footer / empty / error handling for a paged sliver list.
-Widget pagedFooter<T>(PagedState<T> s, VoidCallback retry, {String emptyTitle = 'Nothing here yet', IconData emptyIcon = Icons.library_music_outlined}) {
+Widget pagedFooter<T>(PagedState<T> s, VoidCallback retry,
+    {String emptyTitle = 'Nothing here yet', IconData emptyIcon = Icons.library_music_outlined}) {
   if (s.items.isEmpty && s.loading) {
     return SliverList.builder(itemCount: 8, itemBuilder: (_, __) => const TileSkeleton());
   }
@@ -192,7 +194,8 @@ Widget pagedFooter<T>(PagedState<T> s, VoidCallback retry, {String emptyTitle = 
     return SliverFillRemaining(hasScrollBody: false, child: EmptyState(icon: emptyIcon, title: emptyTitle));
   }
   if (s.loading) {
-    return const SliverToBoxAdapter(child: Padding(padding: EdgeInsets.all(20), child: Center(child: CircularProgressIndicator(strokeWidth: 2.5))));
+    return const SliverToBoxAdapter(
+        child: Padding(padding: EdgeInsets.all(20), child: Center(child: CircularProgressIndicator(strokeWidth: 2.5))));
   }
   if (s.error != null) {
     return SliverToBoxAdapter(child: Padding(padding: const EdgeInsets.all(12), child: ErrorState(message: s.error!, onRetry: retry)));
@@ -316,7 +319,12 @@ class TrackCard extends ConsumerWidget {
           Artwork(image: track.art, width: width),
           const SizedBox(height: 8),
           Text(track.title, maxLines: 1, overflow: TextOverflow.ellipsis, style: t.titleSmall?.copyWith(fontWeight: FontWeight.w600)),
-          Text(track.artist.name, maxLines: 1, overflow: TextOverflow.ellipsis, style: t.bodySmall?.copyWith(color: muted)),
+          Text(
+            track.previewOnly ? '${track.artist.name} · Preview' : track.artist.name,
+            maxLines: 1,
+            overflow: TextOverflow.ellipsis,
+            style: t.bodySmall?.copyWith(color: muted),
+          ),
         ]),
       ),
     );
@@ -364,8 +372,11 @@ class ArtistCard extends StatelessWidget {
           Artwork(image: artist.avatar, width: width, circle: true, icon: Icons.person),
           const SizedBox(height: 8),
           Row(mainAxisAlignment: MainAxisAlignment.center, children: [
-            Flexible(child: Text(artist.name, maxLines: 1, overflow: TextOverflow.ellipsis, style: t.titleSmall?.copyWith(fontWeight: FontWeight.w600))),
-            if (artist.verified) const Padding(padding: EdgeInsets.only(left: 3), child: Icon(Icons.verified, size: 14, color: AppColors.accent)),
+            Flexible(
+                child: Text(artist.name,
+                    maxLines: 1, overflow: TextOverflow.ellipsis, style: t.titleSmall?.copyWith(fontWeight: FontWeight.w600))),
+            if (artist.verified)
+              const Padding(padding: EdgeInsets.only(left: 3), child: Icon(Icons.verified, size: 14, color: AppColors.accent)),
           ]),
         ]),
       ),
@@ -383,7 +394,8 @@ class ArtistTile extends StatelessWidget {
         leading: Artwork(image: artist.avatar, width: 52, circle: true, icon: Icons.person),
         title: Row(children: [
           Flexible(child: Text(artist.name, maxLines: 1, overflow: TextOverflow.ellipsis)),
-          if (artist.verified) const Padding(padding: EdgeInsets.only(left: 4), child: Icon(Icons.verified, size: 16, color: AppColors.accent)),
+          if (artist.verified)
+            const Padding(padding: EdgeInsets.only(left: 4), child: Icon(Icons.verified, size: 16, color: AppColors.accent)),
         ]),
         subtitle: Text('${fmtCount(artist.followers)} followers • ${artist.trackCount} tracks'),
       );
@@ -423,7 +435,10 @@ class TrackTile extends ConsumerWidget {
       track.artist.name,
       if (track.duration > 0) fmtDuration(track.duration),
       if (track.plays > 0) '${fmtCount(track.plays)} plays',
-      if (track.provider == MusicProviders.jamendo) 'Jamendo',
+      if (track.previewOnly)
+        'Preview · ${MusicProviders.label(track.provider)}'
+      else if (track.provider == MusicProviders.jamendo)
+        'Jamendo',
     ].join(' • ');
     return ListTile(
       onTap: onTap,
@@ -438,7 +453,9 @@ class TrackTile extends ConsumerWidget {
             child: const Icon(Icons.graphic_eq, color: AppColors.accent),
           ),
       ]),
-      title: Text(track.title, maxLines: 1, overflow: TextOverflow.ellipsis,
+      title: Text(track.title,
+          maxLines: 1,
+          overflow: TextOverflow.ellipsis,
           style: TextStyle(fontWeight: FontWeight.w600, color: isCurrent ? AppColors.accent : null)),
       subtitle: Text(meta, maxLines: 1, overflow: TextOverflow.ellipsis, style: TextStyle(color: scheme.onSurfaceVariant)),
       trailing: Row(mainAxisSize: MainAxisSize.min, children: [
@@ -483,23 +500,69 @@ Future<void> showTrackMenu(BuildContext context, WidgetRef ref, Track track,
             subtitle: Text(track.artist.name),
           ),
           const Divider(height: 1),
-          ListTile(leading: const Icon(Icons.skip_next_outlined), title: const Text('Play next'), onTap: () { close(); actions.playNext(track); }),
-          ListTile(leading: const Icon(Icons.queue_music), title: const Text('Add to queue'), onTap: () { close(); actions.addToQueue(track); }),
-          ListTile(leading: const Icon(Icons.playlist_add), title: const Text('Add to playlist'), onTap: () { close(); showAddToPlaylistSheet(context, ref, [track]); }),
+          ListTile(
+              leading: const Icon(Icons.skip_next_outlined),
+              title: const Text('Play next'),
+              onTap: () {
+                close();
+                actions.playNext(track);
+              }),
+          ListTile(
+              leading: const Icon(Icons.queue_music),
+              title: const Text('Add to queue'),
+              onTap: () {
+                close();
+                actions.addToQueue(track);
+              }),
+          ListTile(
+              leading: const Icon(Icons.playlist_add),
+              title: const Text('Add to playlist'),
+              onTap: () {
+                close();
+                showAddToPlaylistSheet(context, ref, [track]);
+              }),
           ListTile(
             leading: Icon(isFav ? Icons.favorite : Icons.favorite_border),
             title: Text(isFav ? 'Remove from favorites' : 'Add to favorites'),
-            onTap: () { close(); favorites.toggleTrack(track); },
+            onTap: () {
+              close();
+              favorites.toggleTrack(track);
+            },
           ),
           if (track.artist.id.isNotEmpty)
-            ListTile(leading: const Icon(Icons.person_outline), title: const Text('Go to artist'), onTap: () { close(); (onOpenArtist ?? context.openArtist)(track.artist.id); }),
+            ListTile(
+                leading: const Icon(Icons.person_outline),
+                title: const Text('Go to artist'),
+                onTap: () {
+                  close();
+                  (onOpenArtist ?? context.openArtist)(track.artist.id);
+                }),
+          if (track.previewOnly && track.externalUrl != null)
+            ListTile(
+              leading: const Icon(Icons.library_music_outlined),
+              title: Text('Play full song on ${MusicProviders.label(track.provider)}'),
+              subtitle: const Text('Only a 30-second preview plays here'),
+              onTap: () {
+                close();
+                openFullSong(track);
+              },
+            ),
           ListTile(
             leading: const Icon(Icons.open_in_new, color: Color(0xFF1DB954)),
             title: const Text('Open in Spotify'),
-            onTap: () { close(); openInSpotify(track); },
+            onTap: () {
+              close();
+              openInSpotify(track);
+            },
           ),
           if (onRemove != null)
-            ListTile(leading: const Icon(Icons.remove_circle_outline), title: const Text('Remove from this list'), onTap: () { close(); onRemove(); }),
+            ListTile(
+                leading: const Icon(Icons.remove_circle_outline),
+                title: const Text('Remove from this list'),
+                onTap: () {
+                  close();
+                  onRemove();
+                }),
         ]),
       );
     },

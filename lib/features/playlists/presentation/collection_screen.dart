@@ -52,18 +52,22 @@ class CollectionScreen extends ConsumerWidget {
               ConstrainedBox(
                 constraints: const BoxConstraints(maxWidth: 280),
                 child: DecoratedBox(
-                  decoration: BoxDecoration(borderRadius: BorderRadius.circular(18), boxShadow: [BoxShadow(color: AppColors.accent.withValues(alpha: 0.3), blurRadius: 30, offset: const Offset(0, 12))]),
+                  decoration: BoxDecoration(
+                      borderRadius: BorderRadius.circular(18),
+                      boxShadow: [BoxShadow(color: AppColors.accent.withValues(alpha: 0.3), blurRadius: 30, offset: const Offset(0, 12))]),
                   child: Artwork(image: c.art, radius: 18, icon: c.isAlbum ? Icons.album : Icons.queue_music),
                 ),
               ),
               const SizedBox(height: 20),
-              Text(c.name, textAlign: TextAlign.center, style: Theme.of(context).textTheme.headlineSmall?.copyWith(fontWeight: FontWeight.w800)),
+              Text(c.name,
+                  textAlign: TextAlign.center, style: Theme.of(context).textTheme.headlineSmall?.copyWith(fontWeight: FontWeight.w800)),
               const SizedBox(height: 4),
               InkWell(
                 onTap: c.owner.id.isEmpty ? null : () => context.openArtist(c.owner.id),
                 child: Row(mainAxisSize: MainAxisSize.min, children: [
                   Text(c.owner.name, style: const TextStyle(color: AppColors.accent, fontWeight: FontWeight.w600)),
-                  if (c.owner.verified) const Padding(padding: EdgeInsets.only(left: 4), child: Icon(Icons.verified, size: 14, color: AppColors.accent)),
+                  if (c.owner.verified)
+                    const Padding(padding: EdgeInsets.only(left: 4), child: Icon(Icons.verified, size: 14, color: AppColors.accent)),
                 ]),
               ),
               const SizedBox(height: 4),
@@ -83,15 +87,21 @@ class CollectionScreen extends ConsumerWidget {
                 icon: Icon(fav ? Icons.favorite : Icons.favorite_border, color: fav ? AppColors.accentWarm : null),
               ),
               IconButton(tooltip: 'Add to queue', onPressed: () => actions.addAllToQueue(tracks), icon: const Icon(Icons.queue_music)),
-              IconButton(tooltip: 'Save to my playlist', onPressed: tracks.isEmpty ? null : () => showAddToPlaylistSheet(context, ref, tracks), icon: const Icon(Icons.playlist_add)),
+              IconButton(
+                  tooltip: 'Save to my playlist',
+                  onPressed: tracks.isEmpty ? null : () => showAddToPlaylistSheet(context, ref, tracks),
+                  icon: const Icon(Icons.playlist_add)),
             ],
           ),
         ),
         tracksAsync.when(
           loading: () => SliverList.builder(itemCount: 6, itemBuilder: (_, __) => const TileSkeleton()),
-          error: (e, _) => SliverFillRemaining(hasScrollBody: false, child: ErrorState(message: e.toString(), onRetry: () => ref.invalidate(collectionTracksProvider(id)))),
+          error: (e, _) => SliverFillRemaining(
+              hasScrollBody: false, child: ErrorState(message: e.toString(), onRetry: () => ref.invalidate(collectionTracksProvider(id)))),
           data: (list) => list.isEmpty
-              ? const SliverFillRemaining(hasScrollBody: false, child: EmptyState(icon: Icons.music_off, title: 'No playable tracks', message: 'Tracks may be hidden or unavailable.'))
+              ? const SliverFillRemaining(
+                  hasScrollBody: false,
+                  child: EmptyState(icon: Icons.music_off, title: 'No playable tracks', message: 'Tracks may be hidden or unavailable.'))
               : trackSliver(list, (i) => actions.playTracks(list, index: i), numbered: true),
         ),
         const SliverToBoxAdapter(child: SizedBox(height: 32)),

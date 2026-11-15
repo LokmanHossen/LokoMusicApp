@@ -8,9 +8,10 @@ Checked against official docs and live requests on 2026-11-14.
 |---|---|---|---|---|---|---|
 | **Audius** | Yes (`/tracks/{id}/stream`, 302 to `audio/mpeg`) | Yes, by search | Yes, by search | Yes | None (optional API key) | **Primary source** |
 | **Jamendo** | Yes (`audio` field, verified 272 s file) | Unverified | Unverified | Yes | Free `client_id` | **Optional second source** |
-| Deezer | No, 30-second `preview` only | Metadata only | Metadata only | Metadata only | None for search | No |
+| **Deezer** | No, 30-second `preview` only (signed URL, expires in hours) | Yes (mainstream) | Yes (Bollywood) | Yes | None | **Previews only** |
+| **iTunes Search** | No, 30-second `previewUrl` only | Yes, India store | Yes, India store | Yes | None | **Previews only** |
 | Internet Archive | Yes | 5 openly licensed items | 31 openly licensed items | Large | None | No |
-| JioSaavn | No public or permitted API | | | | | No |
+| JioSaavn | No public or permitted API (only unofficial scrapers) | | | | | No |
 
 ## Audius
 
@@ -56,11 +57,36 @@ Live coverage, counting up to 50 results per query:
 - **Licensing:** all music is Creative Commons. API use is free for **non-commercial** apps. Commercial use needs a Jamendo licensing agreement.
 - **Status in Pulse:** this is wired in from the documented response shape, and it turns on only when `JAMENDO_CLIENT_ID` is set. It has not been run against the live API with a key.
 
+## Preview sources: Deezer and iTunes (added, then switched off, 2026-11-15)
+
+> **Switched off:** the app now hides every song of 30 seconds or less (`Track.isTooShort`), and every
+> Deezer/iTunes preview is exactly 30 s. So the preview rows were removed and search no longer calls
+> Deezer or iTunes (`MusicRepository.searchTracks(previews: false)`). The code is kept for reference.
+> The notes below describe how it worked.
+
+Neither streams full songs, but both have the mainstream Bangla and Hindi catalogue that Audius lacks.
+They are used only for **clearly labelled 30-second previews**, each with a link to the full song on the
+provider's own app. Checked live:
+
+- **Deezer** (https://developers.deezer.com/api): `GET /search?q=&limit=&index=`, no key.
+  - "rabindra sangeet" finds "Tumi Robe Nirobe", and "arijit singh" finds "Tum Hi Ho".
+  - `preview` is a signed MP3 URL that **expires after a few hours** (`exp=` in the URL). So tracks store only the Deezer id, and the player calls `GET /track/{id}` for a fresh link just before playing.
+  - The fresh link returned a 480 KB MP3, about 30 s.
+  - Errors arrive inside a 200 response as `{"error": {...}}`.
+- **iTunes Search** (https://performance-partners.apple.com/search-api): `GET /search?term=&media=music&entity=song&country=in&limit=`, no key.
+  - **`country=bd` returns 0 songs.** Apple has no Bangladesh music store, so the India store is used, and it carries Bengali and Hindi releases (Rabindra Sangeet, Anupam Roy, Coke Studio Bangla).
+  - `previewUrl` is a stable AAC clip (1.08 MB, about 30 s).
+  - There is no documented offset, so pages are cut from one result list of up to 200.
+- **Where they appear in the app:**
+  - "Bangla hits / Bollywood hits · 30-sec previews" rows on the language pages.
+  - Unified search, after the full songs.
+  - Every preview is labelled "Preview · Deezer" or "Preview · Apple Music". The Player shows "30-second preview from …" with a **Full song** button, and the track menu has "Play full song on …".
+- **Terms:** Apple allows previews only to promote the music, with a link to it on Apple Music, which the app always shows. Deezer's API terms require attribution and a link back to Deezer. Review both before a public or commercial release.
+
 ## Rejected
 
-- **Deezer** (https://developers.deezer.com/api): search works without a key and finds Hindi film songs, but `preview` is a 30-second clip. It has no full-length streaming, so it fails the "genuinely playable" requirement.
 - **Internet Archive** (https://archive.org/developers/): full-length audio, but only 5 Bengali and 31 Hindi audio items carry Creative Commons or public-domain licenses. Most other items are user uploads with unclear rights. Too thin and too risky.
-- **JioSaavn, Gaana, Spotify:** no public, permitted, free full-streaming API. Unofficial wrappers scrape commercial services and break their terms.
+- **JioSaavn, Gaana, Spotify:** no public, permitted, free full-streaming API. Unofficial wrappers scrape commercial services and break their terms. This includes community JioSaavn APIs such as `saavn.bycomsolutions.com`, whose `downloadUrl` fields are scraped audio.
 
 ## How languages are detected
 

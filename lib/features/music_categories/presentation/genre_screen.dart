@@ -65,8 +65,11 @@ class _GenreScreenState extends ConsumerState<GenreScreen> {
               flexibleSpace: FlexibleSpaceBar(
                 title: Text(c.label, style: const TextStyle(fontWeight: FontWeight.w800, color: Colors.white)),
                 background: DecoratedBox(
-                  decoration: BoxDecoration(gradient: LinearGradient(colors: c.colors, begin: Alignment.topLeft, end: Alignment.bottomRight)),
-                  child: Align(alignment: Alignment.centerRight, child: Padding(padding: const EdgeInsets.only(right: 24), child: Icon(c.icon, size: 80, color: Colors.white24))),
+                  decoration:
+                      BoxDecoration(gradient: LinearGradient(colors: c.colors, begin: Alignment.topLeft, end: Alignment.bottomRight)),
+                  child: Align(
+                      alignment: Alignment.centerRight,
+                      child: Padding(padding: const EdgeInsets.only(right: 24), child: Icon(c.icon, size: 80, color: Colors.white24))),
                 ),
               ),
             ),
@@ -81,7 +84,12 @@ class _GenreScreenState extends ConsumerState<GenreScreen> {
                     prefixIcon: const Icon(Icons.search),
                     suffixIcon: _query.isEmpty
                         ? null
-                        : IconButton(icon: const Icon(Icons.close), onPressed: () { _controller.clear(); setState(() => _query = ''); }),
+                        : IconButton(
+                            icon: const Icon(Icons.close),
+                            onPressed: () {
+                              _controller.clear();
+                              setState(() => _query = '');
+                            }),
                   ),
                   onChanged: (v) {
                     _debounce?.cancel();
@@ -96,13 +104,17 @@ class _GenreScreenState extends ConsumerState<GenreScreen> {
               SliverToBoxAdapter(
                 child: SizedBox(
                   height: 56,
-                  child: ListView(scrollDirection: Axis.horizontal, padding: const EdgeInsets.symmetric(horizontal: 16, vertical: 10), children: [
-                    for (final e in _sorts.entries)
-                      Padding(
-                        padding: const EdgeInsets.only(right: 8),
-                        child: ChoiceChip(label: Text(e.value), selected: _time == e.key, onSelected: (_) => setState(() => _time = e.key)),
-                      ),
-                  ]),
+                  child: ListView(
+                      scrollDirection: Axis.horizontal,
+                      padding: const EdgeInsets.symmetric(horizontal: 16, vertical: 10),
+                      children: [
+                        for (final e in _sorts.entries)
+                          Padding(
+                            padding: const EdgeInsets.only(right: 8),
+                            child: ChoiceChip(
+                                label: Text(e.value), selected: _time == e.key, onSelected: (_) => setState(() => _time = e.key)),
+                          ),
+                      ]),
                 ),
               ),
             if (artists.isNotEmpty && _query.isEmpty) ...[
@@ -112,7 +124,8 @@ class _GenreScreenState extends ConsumerState<GenreScreen> {
               ),
             ],
             SliverToBoxAdapter(
-              child: SectionHeader(title: _query.isEmpty ? (isTrending ? 'Trending in ${c.label}' : 'Top in ${c.label}') : 'Results for "$_query"'),
+              child: SectionHeader(
+                  title: _query.isEmpty ? (isTrending ? 'Trending in ${c.label}' : 'Top in ${c.label}') : 'Results for "$_query"'),
             ),
             if (state.items.isNotEmpty)
               SliverToBoxAdapter(

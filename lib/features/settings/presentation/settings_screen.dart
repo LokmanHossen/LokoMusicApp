@@ -22,7 +22,8 @@ class SettingsScreen extends ConsumerWidget {
   Widget build(BuildContext context, WidgetRef ref) {
     final settings = ref.watch(settingsProvider);
     final controller = ref.read(settingsProvider.notifier);
-    final label = Theme.of(context).textTheme.titleSmall?.copyWith(color: Theme.of(context).colorScheme.primary, fontWeight: FontWeight.w700);
+    final label =
+        Theme.of(context).textTheme.titleSmall?.copyWith(color: Theme.of(context).colorScheme.primary, fontWeight: FontWeight.w700);
 
     return Scaffold(
       appBar: AppBar(title: const Text('Settings', style: TextStyle(fontWeight: FontWeight.w700))),
@@ -43,7 +44,8 @@ class SettingsScreen extends ConsumerWidget {
         Padding(padding: const EdgeInsets.fromLTRB(16, 24, 16, 0), child: Text('Streaming', style: label)),
         SwitchListTile(
           title: const Text('Stream on Wi-Fi only'),
-          subtitle: const Text('Audius serves a single stream quality, so there is no quality selector. This option saves mobile data instead.'),
+          subtitle:
+              const Text('Audius serves a single stream quality, so there is no quality selector. This option saves mobile data instead.'),
           value: settings.wifiOnly,
           onChanged: controller.setWifiOnly,
         ),
@@ -84,7 +86,9 @@ class SettingsScreen extends ConsumerWidget {
             applicationName: 'Loko Music',
             applicationVersion: '1.0.0',
             applicationLegalese: 'Music and metadata are provided by the Audius network. Content belongs to its artists.',
-            children: [Text(AppConfig.apiKey.isEmpty ? '\nRunning without an API key (default rate limits).' : '\nUsing a configured API key.')],
+            children: [
+              Text(AppConfig.apiKey.isEmpty ? '\nRunning without an API key (default rate limits).' : '\nUsing a configured API key.')
+            ],
           ),
         ),
         ListTile(

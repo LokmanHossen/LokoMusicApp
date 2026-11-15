@@ -21,7 +21,9 @@ enum MusicLanguage {
 }
 
 /// What a language section lists.
-enum SectionKind { tracks, artists, playlists }
+/// [previews] lists 30-second clips from Deezer and iTunes (mainstream songs
+/// that no free API streams in full).
+enum SectionKind { tracks, artists, playlists, previews }
 
 /// One discovery section on a language page. Audius has no language filter,
 /// so each section runs one or more searches and keeps only the results
@@ -49,10 +51,9 @@ class LanguageSection {
 const languageSections = <MusicLanguage, List<LanguageSection>>{
   MusicLanguage.bangla: [
     LanguageSection('bn-latest', 'Latest Bangla songs', SectionKind.tracks, queries: ['bangla', 'bengali'], sort: 'recent'),
+    LanguageSection('bn-classic', 'Classic Bangla songs', SectionKind.tracks,
+        queries: ['lalon', 'baul', 'nazrul', 'rabindra sangeet', 'bangla old']),
     LanguageSection('bn-popular', 'Popular Bangla songs', SectionKind.tracks, queries: ['bangla', 'bengali']),
-    LanguageSection('bn-classic', 'Classic Bangla songs', SectionKind.tracks, queries: ['lalon', 'baul', 'nazrul', 'rabindra sangeet', 'bangla old']),
-    LanguageSection('bn-artists', 'Bangla artists', SectionKind.artists, queries: ['bangla', 'bengali']),
-    LanguageSection('bn-playlists', 'Bangla playlists', SectionKind.playlists, queries: ['bangla', 'bengali']),
   ],
   MusicLanguage.hindi: [
     LanguageSection('hi-latest', 'Latest Hindi songs', SectionKind.tracks, queries: ['hindi'], sort: 'recent'),

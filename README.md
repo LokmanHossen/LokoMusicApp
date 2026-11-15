@@ -3,7 +3,9 @@
 Loko Music streams full-length, legal music from the **Audius API** (https://docs.audius.co/api).
 It can also use **Jamendo** (https://developer.jamendo.com/v3.0) as an optional second source for
 Creative Commons tracks; it is off unless you supply a free client id.
-See `docs/MUSIC_APIS.md` for the API research and comparison (Deezer, Internet Archive and JioSaavn were
+Songs of **30 seconds or less are never shown** (previews, ringtones, short clips). Deezer and iTunes
+preview support exists in the code but is switched off for that reason (see the API doc).
+See `docs/MUSIC_APIS.md` for the API research and comparison (Internet Archive and JioSaavn were
 checked and rejected).
 
 ## Run it
@@ -93,3 +95,22 @@ dart run flutter_launcher_icons                          # all icon sizes, adapt
 dart run flutter_native_splash:create                    # native splash, incl. Android 12
 ```
 The Dart package and Android application id stay `pulse_music` / `com.example.pulse_music`.
+
+## YouTube music videos
+Language pages have a **Music videos · YouTube** row, and Search has a **Videos** tab. Videos play in
+YouTube's official embedded player (`youtube_player_iframe`), **as video, in the foreground only**:
+YouTube's terms forbid audio-only, background or lock-screen playback and downloads, so videos never
+go through the app's audio player or queue, and the app's own music pauses when a video opens.
+
+- API: YouTube Data API v3 `search.list` (`type=video`, `videoCategoryId=10`, `videoEmbeddable=true`,
+  `regionCode=BD`, `relevanceLanguage=bn|hi|en`) plus `videos.list` for length and embeddability.
+  Videos of 30 s or less are hidden, like everywhere else.
+- Quota: 10,000 units/day free for the whole app; one search costs 100 (about 100 searches/day).
+  Results are cached on the device for 6 hours, and Search only queries YouTube when the Videos
+  tab is opened.
+- Key: put it in `config/secrets.json` (git-ignored; template in `config/secrets.example.json`).
+  `.vscode/launch.json` passes it with `--dart-define-from-file=config/secrets.json`; from the
+  command line use the same flag. Without a key the YouTube features are hidden.
+- Restrict the key in Google Cloud Console (APIs & Services → Credentials): limit it to the
+  YouTube Data API v3 and to the Android app (package `com.example.pulse_music` + your signing
+  SHA-1). A key inside an app can always be extracted, so restriction is what protects it.
