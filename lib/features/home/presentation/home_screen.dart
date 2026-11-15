@@ -1,6 +1,7 @@
 import 'package:flutter/material.dart';
 import 'package:flutter_riverpod/flutter_riverpod.dart';
 import 'package:go_router/go_router.dart';
+import 'package:google_fonts/google_fonts.dart';
 import 'package:pulse_music/core/constants/categories.dart';
 import 'package:pulse_music/core/constants/languages.dart';
 import 'package:pulse_music/core/router/nav.dart';
@@ -16,15 +17,23 @@ class HomeScreen extends ConsumerWidget {
 
   Future<void> _refresh(WidgetRef ref) async {
     ref.read(audiusClientProvider).clearCache();
-    for (final p in [trendingProvider, popularProvider, newReleasesProvider, recommendedProvider, popularAlbumsProvider, popularPlaylistsProvider, madeForYouProvider]) {
+    for (final p in [
+      trendingProvider,
+      popularProvider,
+      newReleasesProvider,
+      recommendedProvider,
+      popularAlbumsProvider,
+      popularPlaylistsProvider,
+      madeForYouProvider
+    ]) {
       ref.invalidate(p);
     }
     ref.invalidate(featuredArtistsProvider);
     await ref.read(trendingProvider.future).then((_) {}, onError: (_) {});
   }
 
-  Widget _trackSection(BuildContext context, WidgetRef ref, String title, FutureProvider<List<Track>> provider,
-      PagedSource<Track> viewAll) {
+  Widget _trackSection(
+      BuildContext context, WidgetRef ref, String title, FutureProvider<List<Track>> provider, PagedSource<Track> viewAll) {
     final actions = ref.read(playbackActionsProvider);
     return AsyncSection<Track>(
       title: title,
@@ -43,6 +52,7 @@ class HomeScreen extends ConsumerWidget {
     final scheme = Theme.of(context).colorScheme;
     final genre = ref.watch(topGenreProvider);
 
+    // The guitar background comes from AppBackdrop, shared by every screen.
     return Scaffold(
       body: SafeArea(
         bottom: false,
@@ -50,15 +60,50 @@ class HomeScreen extends ConsumerWidget {
           onRefresh: () => _refresh(ref),
           child: ListView(padding: const EdgeInsets.only(bottom: 24), children: [
             Padding(
-              padding: const EdgeInsets.fromLTRB(16, 16, 8, 0),
-              child: Row(children: [
-                Expanded(
-                  child: Column(crossAxisAlignment: CrossAxisAlignment.start, children: [
-                    Text(greeting(), style: Theme.of(context).textTheme.headlineMedium?.copyWith(fontWeight: FontWeight.w800)),
-                    Text('What are you in the mood for?', style: TextStyle(color: scheme.onSurfaceVariant)),
+              padding: const EdgeInsets.fromLTRB(8, 16, 8, 0),
+              // Row 1: guitar + "Loko Music" + settings. Row 2: the greeting at
+              // full width, so the big guitar never squeezes it.
+              child: Column(children: [
+                SizedBox(
+                  height: 60,
+                  child: Stack(children: [
+                    // Room for the guitar on the left and settings on the right.
+                    const Padding(
+                      padding: EdgeInsets.symmetric(horizontal: 60),
+                      child: Align(alignment: Alignment.centerLeft, child: _BrandTitle()),
+                    ),
+                    // Decorative brand image.
+                    const Positioned(
+                      top: 0,
+                      left: 0,
+                      child: ExcludeSemantics(
+                        child: Padding(
+                          padding: EdgeInsets.all(2),
+                          child: Image(
+                            image: AssetImage('assets/branding/guitar.png'),
+                            width: 56,
+                            height: 56,
+                            filterQuality: FilterQuality.medium,
+                          ),
+                        ),
+                      ),
+                    ),
+                    Positioned(
+                      top: 6,
+                      right: 0,
+                      child: IconButton(
+                          tooltip: 'Settings', icon: const Icon(Icons.settings_outlined), onPressed: () => context.openDetail('settings')),
+                    ),
                   ]),
                 ),
-                IconButton(tooltip: 'Settings', icon: const Icon(Icons.settings_outlined), onPressed: () => context.openDetail('settings')),
+                Padding(
+                  padding: const EdgeInsets.fromLTRB(8, 2, 8, 0),
+                  child: Text(
+                    '${greeting()} · What are you in the mood for?',
+                    textAlign: TextAlign.center,
+                    style: TextStyle(color: scheme.onSurfaceVariant),
+                  ),
+                ),
               ]),
             ),
             Padding(
@@ -133,6 +178,30 @@ class HomeScreen extends ConsumerWidget {
             ),
           ]),
         ),
+      ),
+    );
+  }
+}
+
+/// "Loko Music" in a brush-script font, in the brand crimson with a soft glow.
+class _BrandTitle extends StatelessWidget {
+  const _BrandTitle();
+
+  /// Crimson picked from the reference "Musicvic" artwork.
+  static const crimson = Color(0xFFD9364E);
+
+  @override
+  Widget build(BuildContext context) {
+    final dark = Theme.of(context).brightness == Brightness.dark;
+    return Text(
+      'Loko Music',
+      maxLines: 1,
+      semanticsLabel: 'Loko Music',
+      style: GoogleFonts.pacifico(
+        fontSize: 32,
+        height: 1.25,
+        color: crimson,
+        shadows: [Shadow(color: crimson.withValues(alpha: dark ? 0.45 : 0.25), blurRadius: 14)],
       ),
     );
   }

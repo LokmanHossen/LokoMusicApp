@@ -19,6 +19,7 @@ import 'package:pulse_music/features/queue/presentation/queue_screen.dart';
 import 'package:pulse_music/features/search/presentation/search_screen.dart';
 import 'package:pulse_music/features/settings/presentation/settings_screen.dart';
 import 'package:pulse_music/features/tracks/presentation/list_screen.dart';
+import 'package:pulse_music/shared/widgets/app_backdrop.dart';
 
 final _rootKey = GlobalKey<NavigatorState>(debugLabel: 'root');
 
@@ -42,7 +43,9 @@ List<RouteBase> _detailRoutes() => [
 
 CustomTransitionPage<void> _slideUp(GoRouterState s, Widget child) => CustomTransitionPage<void>(
       key: s.pageKey,
-      child: child,
+      // Custom transitions skip the theme's page builders, so add the shared
+      // background (color + guitar watermark) here.
+      child: AppBackdrop(child: child),
       transitionDuration: const Duration(milliseconds: 320),
       transitionsBuilder: (context, animation, secondary, child) => SlideTransition(
         position: Tween(begin: const Offset(0, 1), end: Offset.zero).chain(CurveTween(curve: Curves.easeOutCubic)).animate(animation),

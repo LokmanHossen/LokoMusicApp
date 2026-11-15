@@ -1,10 +1,12 @@
 import 'package:flutter/material.dart';
 import 'package:google_fonts/google_fonts.dart';
+import 'package:pulse_music/shared/widgets/app_backdrop.dart';
 
 class AppColors {
   static const accent = Color(0xFF8B6CFF);
   static const accentWarm = Color(0xFFFF6B8A);
   static const bg = Color(0xFF0E0D12);
+  static const bgLight = Color(0xFFF7F6FB);
   static const surface = Color(0xFF17151E);
   static const surfaceHigh = Color(0xFF221F2C);
 }
@@ -23,7 +25,12 @@ class AppTheme {
     );
     final base = ThemeData(useMaterial3: true, colorScheme: scheme, brightness: brightness);
     return base.copyWith(
-      scaffoldBackgroundColor: dark ? AppColors.bg : const Color(0xFFF7F6FB),
+      // Transparent so the shared AppBackdrop (color + guitar watermark),
+      // added to every page by the page transitions below, shows through.
+      scaffoldBackgroundColor: Colors.transparent,
+      pageTransitionsTheme: PageTransitionsTheme(builders: {
+        for (final e in base.pageTransitionsTheme.builders.entries) e.key: BackdropPageTransitionsBuilder(e.value),
+      }),
       textTheme: GoogleFonts.outfitTextTheme(base.textTheme),
       appBarTheme: const AppBarTheme(
         backgroundColor: Colors.transparent,
