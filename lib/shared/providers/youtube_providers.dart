@@ -19,6 +19,9 @@ final youtubeLanguageVideosProvider = FutureProvider.autoDispose.family<List<You
   return page.videos;
 });
 
+/// Trending music videos in Bangladesh, for Home (cached 6 h, 1 quota unit).
+final youtubePopularProvider = FutureProvider.autoDispose<List<YouTubeVideo>>((ref) => ref.watch(youtubeProvider).popularMusic());
+
 /// Arguments for the paged videos list.
 class VideoListArgs {
   const VideoListArgs(this.title, this.query, {this.language});

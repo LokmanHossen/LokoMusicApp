@@ -7,6 +7,9 @@ import 'package:pulse_music/core/constants/languages.dart';
 import 'package:pulse_music/core/router/nav.dart';
 import 'package:pulse_music/core/utils/format.dart';
 import 'package:pulse_music/data/models/models.dart';
+import 'package:pulse_music/data/models/youtube_video.dart';
+import 'package:pulse_music/features/videos/presentation/video_widgets.dart';
+import 'package:pulse_music/shared/providers/youtube_providers.dart';
 import 'package:pulse_music/shared/providers/core_providers.dart';
 import 'package:pulse_music/shared/providers/data_providers.dart';
 import 'package:pulse_music/shared/providers/library_providers.dart';
@@ -136,6 +139,17 @@ class HomeScreen extends ConsumerWidget {
                 builder: (c, i) => TrackCard(track: recent[i], onTap: () => actions.playTracks(recent, index: i)),
               ),
             ],
+            // Trending YouTube music videos in Bangladesh (separate row; plays
+            // only in the embedded video player).
+            if (ref.read(youtubeProvider).enabled)
+              AsyncSection<YouTubeVideo>(
+                title: 'Trending music videos · YouTube',
+                value: ref.watch(youtubePopularProvider),
+                height: 222,
+                skeletonWidth: 160,
+                onRetry: () => ref.invalidate(youtubePopularProvider),
+                itemBuilder: (c, items, i) => VideoCard(video: items[i]),
+              ),
             _trackSection(context, ref, 'Trending music', trendingProvider, src.trending()),
             _trackSection(context, ref, 'Popular tracks', popularProvider, src.trending(time: 'allTime')),
             _trackSection(context, ref, 'New releases', newReleasesProvider, src.newReleases()),

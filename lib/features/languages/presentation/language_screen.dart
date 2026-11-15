@@ -145,7 +145,6 @@ class _LanguageScreenState extends ConsumerState<LanguageScreen> {
           if (_query.isNotEmpty)
             ..._results(src.searchAll(_query, language: lang))
           else ...[
-            for (final s in sections) SliverToBoxAdapter(child: section(s)),
             // YouTube music videos: a separate row (YouTube data is never mixed
             // into the other lists). Plays only in the embedded video player.
             if (ref.read(youtubeProvider).enabled)
@@ -161,6 +160,7 @@ class _LanguageScreenState extends ConsumerState<LanguageScreen> {
                   itemBuilder: (c, items, i) => VideoCard(video: items[i]),
                 ),
               ),
+            for (final s in sections) SliverToBoxAdapter(child: section(s)),
             if (hasJamendo)
               SliverToBoxAdapter(
                 child: AsyncSection<Track>(

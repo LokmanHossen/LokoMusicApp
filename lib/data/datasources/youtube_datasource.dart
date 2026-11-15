@@ -80,6 +80,34 @@ class YouTubeDataSource {
     return page;
   }
 
+  /// YouTube's most popular music videos in [regionCode] (the "Trending"
+  /// music chart). Costs 1 quota unit instead of 100 for a search, so it is
+  /// used on Home. Embeddable and longer-than-30 s videos only.
+  Future<List<YouTubeVideo>> popularMusic({String regionCode = 'BD', int maxResults = 20}) async {
+    if (!enabled) return const [];
+    final cacheKey = 'yt:popular:$regionCode:$maxResults';
+    final cached = _readCache(cacheKey);
+    if (cached != null) return cached.videos;
+
+    final res = await _get('/videos', {
+      'part': 'snippet,contentDetails,status',
+      'chart': 'mostPopular',
+      'videoCategoryId': '10',
+      'regionCode': regionCode,
+      'maxResults': maxResults,
+    });
+    final videos = [
+      for (final v in (res['items'] as List? ?? const []).whereType<Map>())
+        if (v['status'] is! Map || (v['status'] as Map)['embeddable'] != false)
+          YouTubeVideo.fromSearch(
+            Map<String, dynamic>.from(v),
+            durationSeconds: parseIsoDuration(v['contentDetails'] is Map ? (v['contentDetails'] as Map)['duration'] as String? : null),
+          ),
+    ].where((v) => v.durationSeconds > Track.maxHiddenSeconds).toList();
+    _writeCache(cacheKey, (videos: videos, nextPageToken: null));
+    return videos;
+  }
+
   YouTubePage? _readCache(String key) {
     final raw = store.getString(key);
     if (raw == null) return null;
