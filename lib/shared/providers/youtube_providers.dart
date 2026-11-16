@@ -4,7 +4,8 @@ import 'package:pulse_music/data/datasources/youtube_datasource.dart';
 import 'package:pulse_music/data/models/youtube_video.dart';
 import 'package:pulse_music/shared/providers/core_providers.dart';
 
-final youtubeProvider = Provider<YouTubeDataSource>((ref) => YouTubeDataSource(store: ref.watch(localStoreProvider)));
+final youtubeProvider = Provider<YouTubeDataSource>(
+    (ref) => YouTubeDataSource(store: ref.watch(localStoreProvider)));
 
 /// Search term used for each language's "Music videos" row.
 const youtubeLanguageQuery = {
@@ -14,8 +15,12 @@ const youtubeLanguageQuery = {
 };
 
 /// First page of music videos for a language page (cached 6 h on device).
-final youtubeLanguageVideosProvider = FutureProvider.autoDispose.family<List<YouTubeVideo>, MusicLanguage>((ref, lang) async {
-  final page = await ref.watch(youtubeProvider).searchVideos(youtubeLanguageQuery[lang]!, language: lang, maxResults: 20);
+final youtubeLanguageVideosProvider = FutureProvider.autoDispose
+    .family<List<YouTubeVideo>, MusicLanguage>((ref, lang) async {
+  final page = await ref.watch(youtubeProvider).searchVideos(
+      youtubeLanguageQuery[lang]!,
+      language: lang,
+      maxResults: 20);
   return page.videos;
 });
 
@@ -27,31 +32,71 @@ const youtubeSongQuery = {
   MusicLanguage.english: 'english song',
 };
 
+/// Query used by the language discovery tabs. Drama content is kept query-led
+/// because YouTube videos in this format do not share one category.
+String youtubeLanguageContentQuery(
+        MusicLanguage language, YouTubeContentType type) =>
+    switch (type) {
+      YouTubeContentType.music => youtubeLanguageQuery[language]!,
+      YouTubeContentType.movie => '${language.label.toLowerCase()} full movie',
+      YouTubeContentType.natok => switch (language) {
+          MusicLanguage.bangla => 'bangla natok',
+          MusicLanguage.hindi => 'hindi tv serial',
+          MusicLanguage.english => 'english drama',
+        },
+      YouTubeContentType.all => language.label.toLowerCase(),
+    };
+
 /// Home's songs row: new Bangla and Hindi songs (YouTube's "|" means OR).
 const youtubeHomeSongQuery = 'new bangla song | new hindi song';
 
-final youtubeLanguageSongsProvider = FutureProvider.autoDispose.family<List<YouTubeVideo>, MusicLanguage>((ref, lang) async {
-  final page = await ref.watch(youtubeProvider).searchVideos(youtubeSongQuery[lang]!, language: lang, songsOnly: true);
+final youtubeLanguageSongsProvider = FutureProvider.autoDispose
+    .family<List<YouTubeVideo>, MusicLanguage>((ref, lang) async {
+  final page = await ref
+      .watch(youtubeProvider)
+      .searchVideos(youtubeSongQuery[lang]!, language: lang, songsOnly: true);
   return page.videos;
 });
 
-final youtubeHomeSongsProvider = FutureProvider.autoDispose<List<YouTubeVideo>>((ref) async {
-  final page = await ref.watch(youtubeProvider).searchVideos(youtubeHomeSongQuery, songsOnly: true);
+final youtubeHomeSongsProvider =
+    FutureProvider.autoDispose<List<YouTubeVideo>>((ref) async {
+  final page = await ref
+      .watch(youtubeProvider)
+      .searchVideos(youtubeHomeSongQuery, songsOnly: true);
   return page.videos;
 });
 
 /// Trending music videos in Bangladesh, for Home (cached 6 h, 1 quota unit).
-final youtubePopularProvider = FutureProvider.autoDispose<List<YouTubeVideo>>((ref) => ref.watch(youtubeProvider).popularMusic());
+final youtubePopularProvider = FutureProvider.autoDispose<List<YouTubeVideo>>(
+    (ref) => ref.watch(youtubeProvider).popularMusic());
+
+/// The first matching official music video supplies the circular artwork for
+/// an artist card. Results are cached by [YouTubeDataSource] for six hours.
+final youtubeArtistThumbnailProvider = FutureProvider.autoDispose
+    .family<YouTubeVideo?, (String, MusicLanguage)>((ref, query) async {
+  final (artistName, language) = query;
+  final page = await ref.watch(youtubeProvider).searchVideos(
+        '$artistName official music',
+        language: language,
+        maxResults: 3,
+      );
+  return page.videos.isEmpty ? null : page.videos.first;
+});
 
 /// Arguments for the paged videos list.
 class VideoListArgs {
-  const VideoListArgs(this.title, this.query, {this.language, this.songs = false}) : popular = false;
+  const VideoListArgs(this.title, this.query,
+      {this.language,
+      this.songs = false,
+      this.contentType = YouTubeContentType.music})
+      : popular = false;
 
   /// The trending music chart (Bangladesh) instead of a search.
   const VideoListArgs.popular(this.title)
       : query = '',
         language = null,
         songs = false,
+        contentType = YouTubeContentType.music,
         popular = true;
 
   final String title, query;
@@ -60,4 +105,6 @@ class VideoListArgs {
 
   /// Single songs only (no compilations), as in the "Songs" rows.
   final bool songs;
+
+  final YouTubeContentType contentType;
 }

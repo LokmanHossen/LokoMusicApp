@@ -3,6 +3,7 @@ import 'package:flutter/material.dart';
 import 'package:flutter_riverpod/flutter_riverpod.dart';
 import 'package:pulse_music/core/constants/categories.dart';
 import 'package:pulse_music/core/constants/languages.dart';
+import 'package:pulse_music/data/datasources/youtube_datasource.dart';
 import 'package:pulse_music/features/videos/presentation/video_list_screen.dart';
 import 'package:pulse_music/shared/providers/youtube_providers.dart';
 import 'package:pulse_music/core/router/nav.dart';
@@ -84,39 +85,54 @@ class _SearchScreenState extends ConsumerState<SearchScreen> {
           ),
           SizedBox(
             height: 48,
-            child: ListView(scrollDirection: Axis.horizontal, padding: const EdgeInsets.symmetric(horizontal: 16), children: [
-              Padding(
-                padding: const EdgeInsets.only(right: 8),
-                child: ChoiceChip(
-                    avatar: const Icon(Icons.translate, size: 18),
-                    label: const Text('All languages'),
-                    selected: _language == null,
-                    onSelected: (_) => setState(() => _language = null)),
-              ),
-              for (final l in MusicLanguage.values)
-                Padding(
-                  padding: const EdgeInsets.only(right: 8),
-                  child: ChoiceChip(
-                      label: Text(l == MusicLanguage.english ? l.label : '${l.label} · ${l.nativeLabel}'),
-                      selected: _language == l,
-                      onSelected: (s) => setState(() => _language = s ? l : null)),
-                ),
-            ]),
+            child: ListView(
+                scrollDirection: Axis.horizontal,
+                padding: const EdgeInsets.symmetric(horizontal: 16),
+                children: [
+                  Padding(
+                    padding: const EdgeInsets.only(right: 8),
+                    child: ChoiceChip(
+                        avatar: const Icon(Icons.translate, size: 18),
+                        label: const Text('All languages'),
+                        selected: _language == null,
+                        onSelected: (_) => setState(() => _language = null)),
+                  ),
+                  for (final l in MusicLanguage.values)
+                    Padding(
+                      padding: const EdgeInsets.only(right: 8),
+                      child: ChoiceChip(
+                          label: Text(l == MusicLanguage.english
+                              ? l.label
+                              : '${l.label} · ${l.nativeLabel}'),
+                          selected: _language == l,
+                          onSelected: (s) =>
+                              setState(() => _language = s ? l : null)),
+                    ),
+                ]),
           ),
           SizedBox(
             height: 48,
-            child: ListView(scrollDirection: Axis.horizontal, padding: const EdgeInsets.symmetric(horizontal: 16), children: [
-              Padding(
-                padding: const EdgeInsets.only(right: 8),
-                child:
-                    ChoiceChip(label: const Text('All genres'), selected: _genre == null, onSelected: (_) => setState(() => _genre = null)),
-              ),
-              for (final g in searchGenres)
-                Padding(
-                  padding: const EdgeInsets.only(right: 8),
-                  child: ChoiceChip(label: Text(g), selected: _genre == g, onSelected: (s) => setState(() => _genre = s ? g : null)),
-                ),
-            ]),
+            child: ListView(
+                scrollDirection: Axis.horizontal,
+                padding: const EdgeInsets.symmetric(horizontal: 16),
+                children: [
+                  Padding(
+                    padding: const EdgeInsets.only(right: 8),
+                    child: ChoiceChip(
+                        label: const Text('All genres'),
+                        selected: _genre == null,
+                        onSelected: (_) => setState(() => _genre = null)),
+                  ),
+                  for (final g in searchGenres)
+                    Padding(
+                      padding: const EdgeInsets.only(right: 8),
+                      child: ChoiceChip(
+                          label: Text(g),
+                          selected: _genre == g,
+                          onSelected: (s) =>
+                              setState(() => _genre = s ? g : null)),
+                    ),
+                ]),
           ),
           Expanded(
             child: _query.isEmpty
@@ -125,7 +141,8 @@ class _SearchScreenState extends ConsumerState<SearchScreen> {
                     query: _query,
                     genre: _genre,
                     language: _language,
-                    onPlayed: () => ref.read(searchHistoryProvider.notifier).add(_query)),
+                    onPlayed: () =>
+                        ref.read(searchHistoryProvider.notifier).add(_query)),
           ),
         ]),
       ),
@@ -142,18 +159,29 @@ class _Suggestions extends ConsumerWidget {
   Widget build(BuildContext context, WidgetRef ref) {
     final history = ref.watch(searchHistoryProvider);
     final typed = text.trim().toLowerCase();
-    final items = typed.isEmpty ? history : history.where((h) => h.toLowerCase().contains(typed)).toList();
+    final items = typed.isEmpty
+        ? history
+        : history.where((h) => h.toLowerCase().contains(typed)).toList();
     if (history.isEmpty && typed.isEmpty) {
       return const EmptyState(
-          icon: Icons.search, title: 'Find your next favorite', message: 'Search across tracks, artists, albums and playlists.');
+          icon: Icons.search,
+          title: 'Find your next favorite',
+          message: 'Search across tracks, artists, albums and playlists.');
     }
     return ListView(children: [
       if (typed.isEmpty)
         Padding(
           padding: const EdgeInsets.fromLTRB(16, 8, 8, 0),
           child: Row(children: [
-            Expanded(child: Text('Recent searches', style: Theme.of(context).textTheme.titleMedium?.copyWith(fontWeight: FontWeight.w700))),
-            TextButton(onPressed: ref.read(searchHistoryProvider.notifier).clear, child: const Text('Clear all')),
+            Expanded(
+                child: Text('Recent searches',
+                    style: Theme.of(context)
+                        .textTheme
+                        .titleMedium
+                        ?.copyWith(fontWeight: FontWeight.w700))),
+            TextButton(
+                onPressed: ref.read(searchHistoryProvider.notifier).clear,
+                child: const Text('Clear all')),
           ]),
         ),
       for (final h in items)
@@ -161,17 +189,25 @@ class _Suggestions extends ConsumerWidget {
           leading: Icon(typed.isEmpty ? Icons.history : Icons.search),
           title: Text(h),
           onTap: () => onPick(h),
-          trailing:
-              IconButton(icon: const Icon(Icons.close, size: 18), onPressed: () => ref.read(searchHistoryProvider.notifier).remove(h)),
+          trailing: IconButton(
+              icon: const Icon(Icons.close, size: 18),
+              onPressed: () =>
+                  ref.read(searchHistoryProvider.notifier).remove(h)),
         ),
       if (typed.isNotEmpty && items.isEmpty)
-        const Padding(padding: EdgeInsets.all(24), child: Center(child: Text('Keep typing to search…'))),
+        const Padding(
+            padding: EdgeInsets.all(24),
+            child: Center(child: Text('Keep typing to search…'))),
     ]);
   }
 }
 
 class _Results extends ConsumerWidget {
-  const _Results({required this.query, required this.genre, required this.language, required this.onPlayed});
+  const _Results(
+      {required this.query,
+      required this.genre,
+      required this.language,
+      required this.onPlayed});
   final String query;
   final String? genre;
   final MusicLanguage? language;
@@ -182,7 +218,7 @@ class _Results extends ConsumerWidget {
     final src = ref.read(sourcesProvider);
     final videos = ref.read(youtubeProvider).enabled;
     return DefaultTabController(
-      length: videos ? 5 : 4,
+      length: videos ? 8 : 4,
       child: Column(children: [
         TabBar(
           isScrollable: videos,
@@ -193,20 +229,53 @@ class _Results extends ConsumerWidget {
             const Tab(text: 'Albums'),
             const Tab(text: 'Playlists'),
             if (videos) const Tab(text: 'Videos'),
+            if (videos) const Tab(text: 'Songs'),
+            if (videos) const Tab(text: 'Movies'),
+            if (videos) const Tab(text: 'Natok'),
           ],
         ),
         Expanded(
           child: TabBarView(children: [
             // Tracks: all providers, merged and de-duplicated.
-            _TrackResults(source: src.searchAll(query, genre: genre, language: language), onPlayed: onPlayed),
+            _TrackResults(
+                source: src.searchAll(query, genre: genre, language: language),
+                onPlayed: onPlayed),
             // Artist names say little about language, so artists are not filtered.
             _ArtistResults(source: src.searchArtists(query)),
-            _CollectionResults(source: src.searchAlbumsIn(query, language), emptyTitle: 'No albums found', icon: Icons.album_outlined),
-            _CollectionResults(source: src.searchPlaylistsIn(query, language), emptyTitle: 'No playlists found', icon: Icons.queue_music),
-            // YouTube music videos, in their own tab (never mixed with the
-            // other results). Only searched when this tab is opened, since
-            // each YouTube search uses 1% of the app's daily quota.
-            if (videos) VideoResults(query: query, language: language),
+            _CollectionResults(
+                source: src.searchAlbumsIn(query, language),
+                emptyTitle: 'No albums found',
+                icon: Icons.album_outlined),
+            _CollectionResults(
+                source: src.searchPlaylistsIn(query, language),
+                emptyTitle: 'No playlists found',
+                icon: Icons.queue_music),
+            // YouTube results stay separate from audio results. The tabs use
+            // their appropriate category/query treatment and open only in the
+            // embedded YouTube player.
+            if (videos)
+              VideoResults(
+                  query: query,
+                  language: language,
+                  contentType: YouTubeContentType.all),
+            if (videos)
+              VideoResults(
+                query: query,
+                language: language,
+                songs: true,
+                contentType: YouTubeContentType.music,
+              ),
+            if (videos)
+              VideoResults(
+                  query: query,
+                  language: language,
+                  contentType: YouTubeContentType.movie),
+            if (videos)
+              VideoResults(
+                query: '$query natok',
+                language: language,
+                contentType: YouTubeContentType.natok,
+              ),
           ]),
         ),
       ]),
@@ -231,7 +300,8 @@ class _TrackResults extends ConsumerWidget {
           onPlayed();
           actions.playTracks(state.items, index: i);
         }),
-        pagedFooter<Track>(state, notifier.refresh, emptyTitle: 'No tracks found', emptyIcon: Icons.search_off),
+        pagedFooter<Track>(state, notifier.refresh,
+            emptyTitle: 'No tracks found', emptyIcon: Icons.search_off),
       ]),
     );
   }
@@ -248,15 +318,19 @@ class _ArtistResults extends ConsumerWidget {
     return InfiniteScroll(
       onEnd: notifier.loadMore,
       child: CustomScrollView(slivers: [
-        SliverList.builder(itemCount: state.items.length, itemBuilder: (c, i) => ArtistTile(artist: state.items[i])),
-        pagedFooter<Artist>(state, notifier.refresh, emptyTitle: 'No artists found', emptyIcon: Icons.person_search),
+        SliverList.builder(
+            itemCount: state.items.length,
+            itemBuilder: (c, i) => ArtistTile(artist: state.items[i])),
+        pagedFooter<Artist>(state, notifier.refresh,
+            emptyTitle: 'No artists found', emptyIcon: Icons.person_search),
       ]),
     );
   }
 }
 
 class _CollectionResults extends ConsumerWidget {
-  const _CollectionResults({required this.source, required this.emptyTitle, required this.icon});
+  const _CollectionResults(
+      {required this.source, required this.emptyTitle, required this.icon});
   final PagedSource<Collection> source;
   final String emptyTitle;
   final IconData icon;
@@ -274,13 +348,18 @@ class _CollectionResults extends ConsumerWidget {
             final item = state.items[i];
             return ListTile(
               onTap: () => context.openCollection(item),
-              leading: Artwork(image: item.art, width: 52, radius: 8, icon: icon),
-              title: Text(item.name, maxLines: 1, overflow: TextOverflow.ellipsis, style: const TextStyle(fontWeight: FontWeight.w600)),
+              leading:
+                  Artwork(image: item.art, width: 52, radius: 8, icon: icon),
+              title: Text(item.name,
+                  maxLines: 1,
+                  overflow: TextOverflow.ellipsis,
+                  style: const TextStyle(fontWeight: FontWeight.w600)),
               subtitle: Text('${item.owner.name} • ${item.trackCount} tracks'),
             );
           },
         ),
-        pagedFooter<Collection>(state, notifier.refresh, emptyTitle: emptyTitle, emptyIcon: icon),
+        pagedFooter<Collection>(state, notifier.refresh,
+            emptyTitle: emptyTitle, emptyIcon: icon),
       ]),
     );
   }

@@ -2,6 +2,7 @@ import 'package:flutter/material.dart';
 import 'package:flutter_riverpod/flutter_riverpod.dart';
 import 'package:pulse_music/core/constants/languages.dart';
 import 'package:pulse_music/core/error/failure.dart';
+import 'package:pulse_music/data/datasources/youtube_datasource.dart';
 import 'package:pulse_music/data/models/youtube_video.dart';
 import 'package:pulse_music/features/videos/presentation/video_widgets.dart';
 import 'package:pulse_music/shared/providers/youtube_providers.dart';
@@ -11,7 +12,13 @@ import 'package:pulse_music/shared/widgets/widgets.dart';
 /// Each page is one `search.list` call (100 quota units), so the next page
 /// loads only when the user scrolls to the end.
 class VideoResults extends ConsumerStatefulWidget {
-  const VideoResults({super.key, required this.query, this.language, this.popular = false, this.songs = false});
+  const VideoResults(
+      {super.key,
+      required this.query,
+      this.language,
+      this.popular = false,
+      this.songs = false,
+      this.contentType = YouTubeContentType.music});
   final String query;
   final MusicLanguage? language;
 
@@ -20,6 +27,8 @@ class VideoResults extends ConsumerStatefulWidget {
 
   /// Single songs only (see isSingleSong).
   final bool songs;
+
+  final YouTubeContentType contentType;
 
   @override
   ConsumerState<VideoResults> createState() => _VideoResultsState();
@@ -41,7 +50,13 @@ class _VideoResultsState extends ConsumerState<VideoResults> {
   @override
   void didUpdateWidget(VideoResults old) {
     super.didUpdateWidget(old);
-    if (old.query != widget.query || old.language != widget.language || old.popular != widget.popular || old.songs != widget.songs) _reset();
+    if (old.query != widget.query ||
+        old.language != widget.language ||
+        old.popular != widget.popular ||
+        old.songs != widget.songs ||
+        old.contentType != widget.contentType) {
+      _reset();
+    }
   }
 
   void _reset() {
@@ -62,7 +77,13 @@ class _VideoResultsState extends ConsumerState<VideoResults> {
       final yt = ref.read(youtubeProvider);
       final page = widget.popular
           ? await yt.popularMusicPage(maxResults: 25, pageToken: _next)
-          : await yt.searchVideos(widget.query, language: widget.language, pageToken: _next, songsOnly: widget.songs);
+          : await yt.searchVideos(
+              widget.query,
+              language: widget.language,
+              pageToken: _next,
+              songsOnly: widget.songs,
+              contentType: widget.contentType,
+            );
       if (!mounted) return;
       setState(() {
         _videos.addAll(page.videos.where((v) => _seen.add(v.id)));
@@ -79,22 +100,41 @@ class _VideoResultsState extends ConsumerState<VideoResults> {
 
   @override
   Widget build(BuildContext context) {
-    if (_videos.isEmpty && _loading) return const Center(child: CircularProgressIndicator(strokeWidth: 2.5));
-    if (_videos.isEmpty && _error != null) return ErrorState(message: _error!, onRetry: _reset);
-    if (_videos.isEmpty && _done) return const EmptyState(icon: Icons.smart_display_outlined, title: 'No music videos found');
+    if (_videos.isEmpty && _loading) {
+      return const Center(child: CircularProgressIndicator(strokeWidth: 2.5));
+    }
+    if (_videos.isEmpty && _error != null) {
+      return ErrorState(message: _error!, onRetry: _reset);
+    }
+    if (_videos.isEmpty && _done) {
+      return const EmptyState(
+          icon: Icons.smart_display_outlined, title: 'No music videos found');
+    }
     return NotificationListener<ScrollNotification>(
       onNotification: (n) {
-        if (n.metrics.axis == Axis.vertical && n.metrics.extentAfter < 400) _load();
+        if (n.metrics.axis == Axis.vertical && n.metrics.extentAfter < 400) {
+          _load();
+        }
         return false;
       },
       child: ListView.builder(
         padding: const EdgeInsets.only(bottom: 24),
         itemCount: _videos.length + 1,
         itemBuilder: (c, i) {
-          if (i < _videos.length) return VideoTile(video: _videos[i], list: _videos);
-          if (_loading)
-            return const Padding(padding: EdgeInsets.all(20), child: Center(child: CircularProgressIndicator(strokeWidth: 2.5)));
-          if (_error != null) return Padding(padding: const EdgeInsets.all(12), child: ErrorState(message: _error!, onRetry: _load));
+          if (i < _videos.length) {
+            return VideoTile(video: _videos[i], list: _videos);
+          }
+          if (_loading) {
+            return const Padding(
+                padding: EdgeInsets.all(20),
+                child:
+                    Center(child: CircularProgressIndicator(strokeWidth: 2.5)));
+          }
+          if (_error != null) {
+            return Padding(
+                padding: const EdgeInsets.all(12),
+                child: ErrorState(message: _error!, onRetry: _load));
+          }
           return const SizedBox(height: 24);
         },
       ),
@@ -109,6 +149,12 @@ class VideoListScreen extends StatelessWidget {
   @override
   Widget build(BuildContext context) => Scaffold(
         appBar: AppBar(title: Text(args.title)),
-        body: VideoResults(query: args.query, language: args.language, popular: args.popular, songs: args.songs),
+        body: VideoResults(
+          query: args.query,
+          language: args.language,
+          popular: args.popular,
+          songs: args.songs,
+          contentType: args.contentType,
+        ),
       );
 }

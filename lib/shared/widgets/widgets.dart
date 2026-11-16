@@ -221,13 +221,19 @@ class InfiniteScroll extends StatelessWidget {
 // ---- Sections --------------------------------------------------------------------
 
 class SectionHeader extends StatelessWidget {
-  const SectionHeader({super.key, required this.title, this.onViewAll});
+  const SectionHeader({
+    super.key,
+    required this.title,
+    this.onViewAll,
+    this.topPadding = 24,
+  });
   final String title;
   final VoidCallback? onViewAll;
+  final double topPadding;
 
   @override
   Widget build(BuildContext context) => Padding(
-        padding: const EdgeInsets.fromLTRB(16, 24, 8, 10),
+        padding: EdgeInsets.fromLTRB(16, topPadding, 8, 10),
         child: Row(children: [
           Expanded(child: Text(title, style: Theme.of(context).textTheme.titleLarge?.copyWith(fontWeight: FontWeight.w700))),
           if (onViewAll != null) TextButton(onPressed: onViewAll, child: const Text('View all')),

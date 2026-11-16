@@ -11,6 +11,21 @@ import 'package:pulse_music/data/models/youtube_video.dart';
 /// One page of YouTube results plus the token for the next page.
 typedef YouTubePage = ({List<YouTubeVideo> videos, String? nextPageToken});
 
+/// The kind of YouTube results shown by the app.  Only music has a reliable
+/// YouTube category; movies use Film & Animation, while natok stays query-led
+/// because creators publish it under several different categories.
+enum YouTubeContentType { all, music, movie, natok }
+
+extension YouTubeContentTypeX on YouTubeContentType {
+  String get cacheKey => name;
+
+  String? get videoCategoryId => switch (this) {
+        YouTubeContentType.music => '10',
+        YouTubeContentType.movie => '1',
+        YouTubeContentType.all || YouTubeContentType.natok => null,
+      };
+}
+
 /// YouTube Data API v3 (https://developers.google.com/youtube/v3).
 ///
 /// Quota: the free tier is 10,000 units/day for the whole app. `search.list`
@@ -18,7 +33,8 @@ typedef YouTubePage = ({List<YouTubeVideo> videos, String? nextPageToken});
 /// Results are therefore cached on the device for [_ttl], and screens only
 /// search when the user opens them.
 class YouTubeDataSource {
-  YouTubeDataSource({required this.store, Dio? dio, String apiKey = AppConfig.youtubeApiKey})
+  YouTubeDataSource(
+      {required this.store, Dio? dio, String apiKey = AppConfig.youtubeApiKey})
       : _key = apiKey,
         _dio = dio ??
             Dio(BaseOptions(
@@ -34,15 +50,23 @@ class YouTubeDataSource {
 
   bool get enabled => _key.isNotEmpty;
 
-  /// Music videos (category 10) for [query], embeddable only, and longer than
-  /// 30 seconds (the app hides anything 30 s or shorter).
-  Future<YouTubePage> searchVideos(String query,
-      {MusicLanguage? language, String? pageToken, int maxResults = 20, bool songsOnly = false}) async {
+  /// Searches embeddable YouTube videos longer than 30 seconds. Music and
+  /// movies use YouTube's category filter; natok is intentionally query-led
+  /// because it has no single official category.
+  Future<YouTubePage> searchVideos(
+    String query, {
+    MusicLanguage? language,
+    String? pageToken,
+    int maxResults = 20,
+    bool songsOnly = false,
+    YouTubeContentType contentType = YouTubeContentType.music,
+  }) async {
     // Songs: fetch the maximum (same 100-unit cost) since many results are
     // filtered out as compilations.
     if (songsOnly) maxResults = 50;
     if (!enabled) return (videos: const <YouTubeVideo>[], nextPageToken: null);
-    final cacheKey = 'yt:${songsOnly ? 'song' : 'video'}:${language?.code}:$query:${pageToken ?? ''}:$maxResults';
+    final cacheKey =
+        'yt:${contentType.cacheKey}:${songsOnly ? 'song' : 'video'}:${language?.code}:$query:${pageToken ?? ''}:$maxResults';
     final cached = _readCache(cacheKey);
     if (cached != null) return cached;
 
@@ -50,37 +74,55 @@ class YouTubeDataSource {
       'part': 'snippet',
       'q': query,
       'type': 'video',
-      'videoCategoryId': '10',
+      if (contentType.videoCategoryId != null)
+        'videoCategoryId': contentType.videoCategoryId,
       'videoEmbeddable': 'true',
       'regionCode': 'BD',
       if (language != null) 'relevanceLanguage': language.code,
       'maxResults': maxResults,
       if (pageToken != null) 'pageToken': pageToken,
     });
-    final items = (search['items'] as List? ?? const []).whereType<Map>().map((m) => Map<String, dynamic>.from(m)).toList();
+    final items = (search['items'] as List? ?? const [])
+        .whereType<Map>()
+        .map((m) => Map<String, dynamic>.from(m))
+        .toList();
     final ids = [
       for (final i in items)
-        if (i['id'] is Map && (i['id'] as Map)['videoId'] != null) '${(i['id'] as Map)['videoId']}'
+        if (i['id'] is Map && (i['id'] as Map)['videoId'] != null)
+          '${(i['id'] as Map)['videoId']}'
     ];
 
     // One cheap call for length and embeddability of the whole page.
     final details = <String, ({int seconds, bool embeddable})>{};
     if (ids.isNotEmpty) {
-      final res = await _get('/videos', {'part': 'contentDetails,status', 'id': ids.join(','), 'maxResults': ids.length});
+      final res = await _get('/videos', {
+        'part': 'contentDetails,status',
+        'id': ids.join(','),
+        'maxResults': ids.length
+      });
       for (final v in (res['items'] as List? ?? const []).whereType<Map>()) {
-        final cd = v['contentDetails'] is Map ? v['contentDetails'] as Map : const {};
+        final cd =
+            v['contentDetails'] is Map ? v['contentDetails'] as Map : const {};
         final st = v['status'] is Map ? v['status'] as Map : const {};
-        details['${v['id']}'] = (seconds: parseIsoDuration(cd['duration'] as String?), embeddable: st['embeddable'] != false);
+        details['${v['id']}'] = (
+          seconds: parseIsoDuration(cd['duration'] as String?),
+          embeddable: st['embeddable'] != false
+        );
       }
     }
 
     final videos = [
       for (final i in items)
         if (details[(i['id'] as Map?)?['videoId']] case final d?)
-          if (d.embeddable && d.seconds > Track.maxHiddenSeconds && (!songsOnly || isSingleSong(i, d.seconds)))
+          if (d.embeddable &&
+              d.seconds > Track.maxHiddenSeconds &&
+              (!songsOnly ||
+                  (contentType == YouTubeContentType.music &&
+                      isSingleSong(i, d.seconds))))
             YouTubeVideo.fromSearch(i, durationSeconds: d.seconds),
     ];
-    final page = (videos: videos, nextPageToken: search['nextPageToken'] as String?);
+    final page =
+        (videos: videos, nextPageToken: search['nextPageToken'] as String?);
     _writeCache(cacheKey, page);
     return page;
   }
@@ -88,11 +130,16 @@ class YouTubeDataSource {
   /// YouTube's most popular music videos in [regionCode] (the "Trending"
   /// music chart). Costs 1 quota unit instead of 100 for a search, so it is
   /// used on Home. Embeddable and longer-than-30 s videos only.
-  Future<List<YouTubeVideo>> popularMusic({String regionCode = 'BD', int maxResults = 20}) async =>
-      (await popularMusicPage(regionCode: regionCode, maxResults: maxResults)).videos;
+  Future<List<YouTubeVideo>> popularMusic(
+          {String regionCode = 'BD', int maxResults = 20}) async =>
+      (await popularMusicPage(regionCode: regionCode, maxResults: maxResults))
+          .videos;
 
   /// One page of the trending music chart ("View all"). Each page costs 1 unit.
-  Future<YouTubePage> popularMusicPage({String regionCode = 'BD', int maxResults = 20, String? pageToken}) async {
+  Future<YouTubePage> popularMusicPage(
+      {String regionCode = 'BD',
+      int maxResults = 20,
+      String? pageToken}) async {
     if (!enabled) return (videos: const <YouTubeVideo>[], nextPageToken: null);
     final cacheKey = 'yt:popular:$regionCode:$maxResults:${pageToken ?? ''}';
     final cached = _readCache(cacheKey);
@@ -111,10 +158,13 @@ class YouTubeDataSource {
         if (v['status'] is! Map || (v['status'] as Map)['embeddable'] != false)
           YouTubeVideo.fromSearch(
             Map<String, dynamic>.from(v),
-            durationSeconds: parseIsoDuration(v['contentDetails'] is Map ? (v['contentDetails'] as Map)['duration'] as String? : null),
+            durationSeconds: parseIsoDuration(v['contentDetails'] is Map
+                ? (v['contentDetails'] as Map)['duration'] as String?
+                : null),
           ),
     ].where((v) => v.durationSeconds > Track.maxHiddenSeconds).toList();
-    final page = (videos: videos, nextPageToken: res['nextPageToken'] as String?);
+    final page =
+        (videos: videos, nextPageToken: res['nextPageToken'] as String?);
     _writeCache(cacheKey, page);
     return page;
   }
@@ -127,7 +177,10 @@ class YouTubeDataSource {
       final at = DateTime.tryParse('${j['at']}');
       if (at == null || DateTime.now().difference(at) > _ttl) return null;
       return (
-        videos: (j['videos'] as List).whereType<Map>().map((m) => YouTubeVideo.fromMap(Map<String, dynamic>.from(m))).toList(),
+        videos: (j['videos'] as List)
+            .whereType<Map>()
+            .map((m) => YouTubeVideo.fromMap(Map<String, dynamic>.from(m)))
+            .toList(),
         nextPageToken: j['next'] as String?,
       );
     } catch (_) {
@@ -138,25 +191,37 @@ class YouTubeDataSource {
   void _writeCache(String key, YouTubePage page) {
     store.putString(
       key,
-      jsonEncode(
-          {'at': DateTime.now().toIso8601String(), 'next': page.nextPageToken, 'videos': page.videos.map((v) => v.toMap()).toList()}),
+      jsonEncode({
+        'at': DateTime.now().toIso8601String(),
+        'next': page.nextPageToken,
+        'videos': page.videos.map((v) => v.toMap()).toList()
+      }),
     );
   }
 
-  Future<Map<String, dynamic>> _get(String path, Map<String, dynamic> query) async {
+  Future<Map<String, dynamic>> _get(
+      String path, Map<String, dynamic> query) async {
     try {
-      final res = await _dio.get<dynamic>(path, queryParameters: {...query, 'key': _key});
+      final res = await _dio
+          .get<dynamic>(path, queryParameters: {...query, 'key': _key});
       final body = res.data;
-      if (body is! Map) throw const Failure('YouTube returned an unexpected response.');
+      if (body is! Map) {
+        throw const Failure('YouTube returned an unexpected response.');
+      }
       return Map<String, dynamic>.from(body);
     } on DioException catch (e) {
       final err = e.response?.data;
-      final reason = err is Map && err['error'] is Map ? '${((err['error'] as Map)['errors'] as List?)?.firstOrNull?['reason'] ?? ''}' : '';
+      final reason = err is Map && err['error'] is Map
+          ? '${((err['error'] as Map)['errors'] as List?)?.firstOrNull?['reason'] ?? ''}'
+          : '';
       if (reason == 'quotaExceeded' || reason == 'dailyLimitExceeded') {
-        throw const Failure('YouTube daily limit reached. Videos will be back tomorrow.', code: 403);
+        throw const Failure(
+            'YouTube daily limit reached. Videos will be back tomorrow.',
+            code: 403);
       }
       if (e.response?.statusCode == 400 || e.response?.statusCode == 403) {
-        throw Failure('YouTube rejected the request${reason.isEmpty ? '' : ' ($reason)'}. Check the API key.',
+        throw Failure(
+            'YouTube rejected the request${reason.isEmpty ? '' : ' ($reason)'}. Check the API key.',
             code: e.response?.statusCode);
       }
       throw Failure.from(e);

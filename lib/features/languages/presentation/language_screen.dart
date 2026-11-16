@@ -3,11 +3,13 @@ import 'package:flutter/material.dart';
 import 'package:flutter_riverpod/flutter_riverpod.dart';
 import 'package:pulse_music/core/constants/languages.dart';
 import 'package:pulse_music/core/router/nav.dart';
+import 'package:pulse_music/data/datasources/youtube_datasource.dart';
 import 'package:pulse_music/data/models/models.dart';
-import 'package:pulse_music/shared/providers/core_providers.dart';
-import 'package:pulse_music/shared/providers/data_providers.dart';
 import 'package:pulse_music/data/models/youtube_video.dart';
 import 'package:pulse_music/features/videos/presentation/video_widgets.dart';
+import 'package:pulse_music/shared/providers/core_providers.dart';
+import 'package:pulse_music/shared/providers/data_providers.dart';
+import 'package:pulse_music/features/videos/presentation/video_list_screen.dart';
 import 'package:pulse_music/shared/providers/youtube_providers.dart';
 import 'package:pulse_music/shared/widgets/widgets.dart';
 
@@ -60,8 +62,11 @@ class _LanguageScreenState extends ConsumerState<LanguageScreen> {
             title: s.title,
             value: ref.watch(languageSectionTracksProvider(key)),
             onRetry: () => ref.invalidate(languageSectionTracksProvider(key)),
-            onViewAll: () => context.openList(ListArgs.tracks(s.title, src.languageTracks(lang, s))),
-            itemBuilder: (c, items, i) => TrackCard(track: items[i], onTap: () => actions.playTracks(items, index: i)),
+            onViewAll: () => context.openList(
+                ListArgs.tracks(s.title, src.languageTracks(lang, s))),
+            itemBuilder: (c, items, i) => TrackCard(
+                track: items[i],
+                onTap: () => actions.playTracks(items, index: i)),
           );
         case SectionKind.artists:
           return AsyncSection<Artist>(
@@ -71,24 +76,31 @@ class _LanguageScreenState extends ConsumerState<LanguageScreen> {
             skeletonWidth: 110,
             skeletonCircle: true,
             onRetry: () => ref.invalidate(languageSectionArtistsProvider(key)),
-            onViewAll: () => context.openList(ListArgs.artists(s.title, src.languageArtists(lang, s))),
+            onViewAll: () => context.openList(
+                ListArgs.artists(s.title, src.languageArtists(lang, s))),
             itemBuilder: (c, items, i) => ArtistCard(artist: items[i]),
           );
         case SectionKind.playlists:
           return AsyncSection<Collection>(
             title: s.title,
             value: ref.watch(languageSectionPlaylistsProvider(key)),
-            onRetry: () => ref.invalidate(languageSectionPlaylistsProvider(key)),
-            onViewAll: () => context.openList(ListArgs.collections(s.title, src.languagePlaylists(lang, s))),
-            itemBuilder: (c, items, i) => CollectionCard(collection: items[i], width: 140),
+            onRetry: () =>
+                ref.invalidate(languageSectionPlaylistsProvider(key)),
+            onViewAll: () => context.openList(
+                ListArgs.collections(s.title, src.languagePlaylists(lang, s))),
+            itemBuilder: (c, items, i) =>
+                CollectionCard(collection: items[i], width: 140),
           );
         case SectionKind.previews:
           return AsyncSection<Track>(
             title: s.title,
             value: ref.watch(languageSectionPreviewsProvider(key)),
             onRetry: () => ref.invalidate(languageSectionPreviewsProvider(key)),
-            onViewAll: () => context.openList(ListArgs.tracks(s.title, src.languagePreviews(lang, s))),
-            itemBuilder: (c, items, i) => TrackCard(track: items[i], onTap: () => actions.playTracks(items, index: i)),
+            onViewAll: () => context.openList(
+                ListArgs.tracks(s.title, src.languagePreviews(lang, s))),
+            itemBuilder: (c, items, i) => TrackCard(
+                track: items[i],
+                onTap: () => actions.playTracks(items, index: i)),
           );
       }
     }
@@ -99,31 +111,27 @@ class _LanguageScreenState extends ConsumerState<LanguageScreen> {
         child: CustomScrollView(slivers: [
           SliverAppBar(
             pinned: true,
-            expandedHeight: 150,
-            flexibleSpace: FlexibleSpaceBar(
-              title: Text(lang.label, style: const TextStyle(fontWeight: FontWeight.w800, color: Colors.white)),
-              background: DecoratedBox(
-                decoration:
-                    BoxDecoration(gradient: LinearGradient(colors: lang.colors, begin: Alignment.topLeft, end: Alignment.bottomRight)),
-                child: Align(
-                  alignment: Alignment.centerRight,
-                  child: Padding(
-                    padding: const EdgeInsets.only(right: 24),
-                    child: Text(lang.nativeLabel, style: const TextStyle(fontSize: 44, fontWeight: FontWeight.w800, color: Colors.white24)),
-                  ),
-                ),
-              ),
-            ),
+            toolbarHeight: 40,
+            backgroundColor: Theme.of(context).colorScheme.surface,
+            surfaceTintColor: Colors.transparent,
+            title: Text(lang.label,
+                style: const TextStyle(fontWeight: FontWeight.w800)),
           ),
           SliverToBoxAdapter(
             child: Padding(
-              padding: const EdgeInsets.fromLTRB(16, 16, 16, 0),
+              padding: const EdgeInsets.fromLTRB(16, 10, 16, 0),
               child: TextField(
                 controller: _controller,
                 textInputAction: TextInputAction.search,
                 decoration: InputDecoration(
-                  hintText: 'Search ${lang.label} songs',
+                  hintText:
+                      'Search YouTube songs, movies, ${_languageDramaLabel(lang)}',
+                  isDense: true,
+                  contentPadding:
+                      const EdgeInsets.symmetric(horizontal: 14, vertical: 10),
                   prefixIcon: const Icon(Icons.search),
+                  prefixIconConstraints:
+                      const BoxConstraints(minWidth: 44, minHeight: 44),
                   suffixIcon: _query.isEmpty
                       ? null
                       : IconButton(
@@ -137,12 +145,18 @@ class _LanguageScreenState extends ConsumerState<LanguageScreen> {
                   _debounce?.cancel();
                   _debounce = Timer(const Duration(milliseconds: 400), () {
                     final q = v.trim();
-                    if (mounted) setState(() => _query = q.length >= 2 ? q : '');
+                    if (mounted) {
+                      setState(() => _query = q.length >= 2 ? q : '');
+                    }
                   });
                 },
               ),
             ),
           ),
+          if (ref.read(youtubeProvider).enabled)
+            SliverToBoxAdapter(
+                child: _LanguageVideoTabs(
+                    language: lang, query: _query.isEmpty ? null : _query)),
           if (_query.isNotEmpty)
             ..._results(src.searchAll(_query, language: lang))
           else ...[
@@ -155,10 +169,13 @@ class _LanguageScreenState extends ConsumerState<LanguageScreen> {
                   value: ref.watch(youtubeLanguageVideosProvider(lang)),
                   height: 222,
                   skeletonWidth: 160,
-                  onRetry: () => ref.invalidate(youtubeLanguageVideosProvider(lang)),
-                  onViewAll: () =>
-                      context.openVideoList(VideoListArgs('${lang.label} music videos', youtubeLanguageQuery[lang]!, language: lang)),
-                  itemBuilder: (c, items, i) => VideoCard(video: items[i], list: items),
+                  onRetry: () =>
+                      ref.invalidate(youtubeLanguageVideosProvider(lang)),
+                  onViewAll: () => context.openVideoList(VideoListArgs(
+                      '${lang.label} music videos', youtubeLanguageQuery[lang]!,
+                      language: lang)),
+                  itemBuilder: (c, items, i) =>
+                      VideoCard(video: items[i], list: items),
                 ),
               ),
             // Single songs from YouTube in this language (no compilations).
@@ -169,10 +186,13 @@ class _LanguageScreenState extends ConsumerState<LanguageScreen> {
                   value: ref.watch(youtubeLanguageSongsProvider(lang)),
                   height: 222,
                   skeletonWidth: 160,
-                  onRetry: () => ref.invalidate(youtubeLanguageSongsProvider(lang)),
-                  onViewAll: () => context.openVideoList(
-                      VideoListArgs('${lang.label} songs', youtubeSongQuery[lang]!, language: lang, songs: true)),
-                  itemBuilder: (c, items, i) => VideoCard(video: items[i], list: items),
+                  onRetry: () =>
+                      ref.invalidate(youtubeLanguageSongsProvider(lang)),
+                  onViewAll: () => context.openVideoList(VideoListArgs(
+                      '${lang.label} songs', youtubeSongQuery[lang]!,
+                      language: lang, songs: true)),
+                  itemBuilder: (c, items, i) =>
+                      VideoCard(video: items[i], list: items),
                 ),
               ),
             for (final s in sections) SliverToBoxAdapter(child: section(s)),
@@ -182,8 +202,11 @@ class _LanguageScreenState extends ConsumerState<LanguageScreen> {
                   title: 'Free ${lang.label} music · Jamendo',
                   value: ref.watch(jamendoLanguageProvider(lang)),
                   onRetry: () => ref.invalidate(jamendoLanguageProvider(lang)),
-                  onViewAll: () => context.openList(ListArgs.tracks('Free ${lang.label} music', src.jamendoLanguage(lang))),
-                  itemBuilder: (c, items, i) => TrackCard(track: items[i], onTap: () => actions.playTracks(items, index: i)),
+                  onViewAll: () => context.openList(ListArgs.tracks(
+                      'Free ${lang.label} music', src.jamendoLanguage(lang))),
+                  itemBuilder: (c, items, i) => TrackCard(
+                      track: items[i],
+                      onTap: () => actions.playTracks(items, index: i)),
                 ),
               ),
             const SliverToBoxAdapter(child: _SourceNote()),
@@ -204,13 +227,91 @@ class _LanguageScreenState extends ConsumerState<LanguageScreen> {
         itemBuilder: (c, i) {
           // Near the end: fetch the next page (loadMore ignores repeat calls).
           if (i >= state.items.length - 3) Future.microtask(notifier.loadMore);
-          return TrackTile(track: state.items[i], onTap: () => actions.playTracks(state.items, index: i));
+          return TrackTile(
+              track: state.items[i],
+              onTap: () => actions.playTracks(state.items, index: i));
         },
       ),
-      pagedFooter<Track>(state, notifier.refresh, emptyTitle: 'No ${widget.language.label} songs found', emptyIcon: Icons.search_off),
+      pagedFooter<Track>(state, notifier.refresh,
+          emptyTitle: 'No ${widget.language.label} songs found',
+          emptyIcon: Icons.search_off),
     ];
   }
 }
+
+/// A compact YouTube-style tab view. Each tab owns a fresh [VideoResults]
+/// instance, so its API request starts only after the user opens that tab.
+class _LanguageVideoTabs extends StatelessWidget {
+  const _LanguageVideoTabs({required this.language, this.query});
+
+  final MusicLanguage language;
+  final String? query;
+
+  @override
+  Widget build(BuildContext context) => DefaultTabController(
+        length: 3,
+        child: Padding(
+          padding: const EdgeInsets.only(top: 8),
+          child: SizedBox(
+            height: 540,
+            child: Column(children: [
+              Padding(
+                padding: const EdgeInsets.symmetric(horizontal: 16),
+                child: Align(
+                  alignment: Alignment.centerLeft,
+                  child: Text(
+                      query == null
+                          ? 'Browse YouTube'
+                          : 'YouTube results for "$query"',
+                      style: const TextStyle(
+                          fontSize: 20, fontWeight: FontWeight.w800)),
+                ),
+              ),
+              TabBar(
+                isScrollable: true,
+                tabAlignment: TabAlignment.start,
+                tabs: [
+                  const Tab(text: 'Music'),
+                  const Tab(text: 'Movies'),
+                  Tab(text: _languageDramaLabel(language)),
+                ],
+              ),
+              Expanded(
+                child: TabBarView(children: [
+                  _videoResults(YouTubeContentType.music),
+                  _videoResults(YouTubeContentType.movie),
+                  _videoResults(YouTubeContentType.natok),
+                ]),
+              ),
+            ]),
+          ),
+        ),
+      );
+
+  Widget _videoResults(YouTubeContentType type) => VideoResults(
+        key: ValueKey('${language.code}-${type.name}'),
+        query: _queryFor(type),
+        language: language,
+        contentType: type,
+      );
+
+  String _queryFor(YouTubeContentType type) {
+    if (query == null) return youtubeLanguageContentQuery(language, type);
+    if (type != YouTubeContentType.natok) return query!;
+    final keyword = switch (language) {
+      MusicLanguage.bangla => 'natok',
+      MusicLanguage.hindi => 'tv serial',
+      MusicLanguage.english => 'drama',
+    };
+    return '$query $keyword';
+  }
+}
+
+String _languageDramaLabel(MusicLanguage language) => switch (language) {
+      MusicLanguage.bangla => 'Natok',
+      MusicLanguage.hindi => 'Serials',
+      MusicLanguage.english => 'TV Shows',
+    };
 
 class _SourceNote extends StatelessWidget {
   const _SourceNote();
@@ -218,8 +319,10 @@ class _SourceNote extends StatelessWidget {
   Widget build(BuildContext context) => Padding(
         padding: const EdgeInsets.fromLTRB(16, 24, 16, 32),
         child: Text(
-          'Songs come from Audius, where artists upload their own music. Language is detected from titles and tags, so some songs may be missing or misplaced. Music videos come from YouTube and play only in the video player while the app is open.',
-          style: TextStyle(color: Theme.of(context).colorScheme.onSurfaceVariant, fontSize: 12),
+          'Songs come from Audius, where artists upload their own music. Language is detected from titles and tags, so some songs may be missing or misplaced. YouTube content plays only in the video player while the app is open.',
+          style: TextStyle(
+              color: Theme.of(context).colorScheme.onSurfaceVariant,
+              fontSize: 12),
         ),
       );
 }

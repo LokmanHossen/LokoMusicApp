@@ -3,9 +3,12 @@ import 'package:flutter/material.dart';
 /// Languages Pulse can browse and filter by. [code] is ISO 639-1, which is
 /// also what Jamendo's `lang` filter expects.
 enum MusicLanguage {
-  bangla('bn', 'Bangla', 'বাংলা', Icons.library_music, [Color(0xFF00A86B), Color(0xFFD7263D)]),
-  hindi('hi', 'Hindi', 'हिन्दी', Icons.music_video, [Color(0xFFFF9933), Color(0xFF138808)]),
-  english('en', 'English', 'English', Icons.headphones, [Color(0xFF3A86FF), Color(0xFF8338EC)]);
+  bangla('bn', 'Bangla', 'বাংলা', Icons.library_music,
+      [Color(0xFF5B2C83), Color(0xFF13A89E)]),
+  hindi('hi', 'Hindi', 'हिन्दी', Icons.music_video,
+      [Color(0xFF7B2CBF), Color(0xFFFF6B6B)]),
+  english('en', 'English', 'English', Icons.headphones,
+      [Color(0xFF4361EE), Color(0xFF4CC9F0)]);
 
   const MusicLanguage(this.code, this.label, this.nativeLabel, this.icon, this.colors);
   final String code, label, nativeLabel;
