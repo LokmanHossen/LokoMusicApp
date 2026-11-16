@@ -70,19 +70,6 @@ final youtubeHomeSongsProvider =
 final youtubePopularProvider = FutureProvider.autoDispose<List<YouTubeVideo>>(
     (ref) => ref.watch(youtubeProvider).popularMusic());
 
-/// The first matching official music video supplies the circular artwork for
-/// an artist card. Results are cached by [YouTubeDataSource] for six hours.
-final youtubeArtistThumbnailProvider = FutureProvider.autoDispose
-    .family<YouTubeVideo?, (String, MusicLanguage)>((ref, query) async {
-  final (artistName, language) = query;
-  final page = await ref.watch(youtubeProvider).searchVideos(
-        '$artistName official music',
-        language: language,
-        maxResults: 3,
-      );
-  return page.videos.isEmpty ? null : page.videos.first;
-});
-
 /// Arguments for the paged videos list.
 class VideoListArgs {
   const VideoListArgs(this.title, this.query,

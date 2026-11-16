@@ -129,20 +129,47 @@ class ErrorState extends StatelessWidget {
   final VoidCallback? onRetry;
 
   @override
-  Widget build(BuildContext context) => Center(
-        child: Padding(
-          padding: const EdgeInsets.all(24),
-          child: Column(mainAxisSize: MainAxisSize.min, children: [
-            Icon(Icons.cloud_off_rounded, size: 44, color: Theme.of(context).colorScheme.onSurfaceVariant),
-            const SizedBox(height: 12),
-            Text(message, textAlign: TextAlign.center),
-            if (onRetry != null) ...[
-              const SizedBox(height: 12),
-              FilledButton.tonal(onPressed: onRetry, child: const Text('Try again')),
-            ],
-          ]),
-        ),
-      );
+  Widget build(BuildContext context) => LayoutBuilder(
+        builder: (context, constraints) {
+          final compact =
+              constraints.hasBoundedHeight && constraints.maxHeight < 200;
+          final content = Padding(
+            padding: EdgeInsets.symmetric(
+              horizontal: compact ? 16 : 24,
+              vertical: compact ? 8 : 24,
+            ),
+            child: Column(mainAxisSize: MainAxisSize.min, children: [
+              Icon(Icons.cloud_off_rounded,
+                  size: compact ? 28 : 44,
+                  color: Theme.of(context).colorScheme.onSurfaceVariant),
+              SizedBox(height: compact ? 4 : 12),
+              Text(
+                message,
+                textAlign: TextAlign.center,
+                style: compact ? Theme.of(context).textTheme.bodySmall : null,
+              ),
+              if (onRetry != null) ...[
+                SizedBox(height: compact ? 4 : 12),
+                FilledButton.tonal(
+                  style: compact
+                      ? FilledButton.styleFrom(
+                          minimumSize: const Size(0, 32),
+                          padding: const EdgeInsets.symmetric(horizontal: 12),
+                          visualDensity: VisualDensity.compact,
+                          tapTargetSize: MaterialTapTargetSize.shrinkWrap,
+                        )
+                      : null,
+                  onPressed: onRetry,
+                  child: const Text('Try again'),
+                ),
+              ],
+            ]),
+          );
+          return Center(
+            child: compact ? SingleChildScrollView(child: content) : content,
+          );
+        },
+        );
 }
 
 class EmptyState extends StatelessWidget {

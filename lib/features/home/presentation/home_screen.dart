@@ -376,7 +376,7 @@ String _languageContentTypes(MusicLanguage language) => switch (language) {
     };
 
 /// Three rows of artist-style cards in a horizontally scrolling grid.
-class MusicArtistGrid extends StatelessWidget {
+class MusicArtistGrid extends StatefulWidget {
   const MusicArtistGrid(
       {super.key, required this.language, required this.artists});
 
@@ -384,25 +384,109 @@ class MusicArtistGrid extends StatelessWidget {
   final List<MusicArtist> artists;
 
   @override
+  State<MusicArtistGrid> createState() => _MusicArtistGridState();
+}
+
+class _MusicArtistGridState extends State<MusicArtistGrid> {
+  final _scrollController = ScrollController();
+  int _dotCount = 1;
+  int _activeDot = 0;
+
+  @override
+  void initState() {
+    super.initState();
+    _scrollController.addListener(_updateIndicator);
+    WidgetsBinding.instance.addPostFrameCallback((_) {
+      if (mounted && _scrollController.hasClients) _updateIndicator();
+    });
+  }
+
+  @override
+  void dispose() {
+    _scrollController.removeListener(_updateIndicator);
+    _scrollController.dispose();
+    super.dispose();
+  }
+
+  void _updateIndicator() {
+    if (!_scrollController.hasClients) return;
+    final position = _scrollController.position;
+    if (position.viewportDimension <= 0) return;
+
+    final dotCount = position.maxScrollExtent <= 0
+        ? 1
+        : (position.maxScrollExtent / position.viewportDimension).ceil() + 1;
+    final activeDot = position.maxScrollExtent <= 0
+        ? 0
+        : (position.pixels / position.maxScrollExtent * (dotCount - 1))
+            .round()
+            .clamp(0, dotCount - 1);
+    if (dotCount != _dotCount || activeDot != _activeDot) {
+      setState(() {
+        _dotCount = dotCount;
+        _activeDot = activeDot;
+      });
+    }
+  }
+
+  @override
   Widget build(BuildContext context) => SizedBox(
-        height: 390,
-        child: GridView.builder(
-          scrollDirection: Axis.horizontal,
-          padding: const EdgeInsets.fromLTRB(16, 0, 16, 8),
-          gridDelegate: const SliverGridDelegateWithFixedCrossAxisCount(
-            crossAxisCount: 3,
-            mainAxisExtent: 86,
-            mainAxisSpacing: 12,
-            crossAxisSpacing: 6,
+        child: Column(children: [
+          SizedBox(
+            height: 370,
+            child: NotificationListener<ScrollMetricsNotification>(
+              onNotification: (_) {
+                _updateIndicator();
+                return false;
+              },
+              child: GridView.builder(
+                controller: _scrollController,
+                scrollDirection: Axis.horizontal,
+                padding: const EdgeInsets.fromLTRB(16, 0, 16, 8),
+                gridDelegate: const SliverGridDelegateWithFixedCrossAxisCount(
+                  crossAxisCount: 3,
+                  mainAxisExtent: 86,
+                  mainAxisSpacing: 12,
+                  crossAxisSpacing: 6,
+                ),
+                itemCount: widget.artists.length,
+                itemBuilder: (context, index) => MusicArtistCard(
+                    artist: widget.artists[index],
+                    language: widget.language,
+                    index: index),
+              ),
+            ),
           ),
-          itemCount: artists.length,
-          itemBuilder: (context, index) => MusicArtistCard(
-              artist: artists[index], language: language, index: index),
-        ),
+          if (_dotCount > 1)
+            Padding(
+              padding: const EdgeInsets.only(top: 4, bottom: 8),
+              child: Row(
+                mainAxisAlignment: MainAxisAlignment.center,
+                children: List.generate(_dotCount, (index) {
+                  final active = index == _activeDot;
+                  return AnimatedContainer(
+                    duration: const Duration(milliseconds: 180),
+                    margin: const EdgeInsets.symmetric(horizontal: 3),
+                    width: active ? 25 : 12,
+                    height: 10,
+                    decoration: BoxDecoration(
+                      color: active
+                          ? Theme.of(context).colorScheme.primary
+                          : Theme.of(context)
+                              .colorScheme
+                              .onSurface
+                              .withValues(alpha: 0.3),
+                      borderRadius: BorderRadius.circular(10),
+                    ),
+                  );
+                }),
+              ),
+            ),
+        ]),
       );
 }
 
-class MusicArtistCard extends ConsumerWidget {
+class MusicArtistCard extends StatelessWidget {
   const MusicArtistCard(
       {super.key,
       required this.artist,
@@ -429,12 +513,8 @@ class MusicArtistCard extends ConsumerWidget {
   }
 
   @override
-  Widget build(BuildContext context, WidgetRef ref) {
+  Widget build(BuildContext context) {
     final colors = _gradients[index % _gradients.length];
-    final thumbnail = ref
-        .watch(youtubeArtistThumbnailProvider((artist.name, language)))
-        .valueOrNull
-        ?.thumbnail;
     final fallback = Center(
       child: Text(_monogram,
           style: const TextStyle(
@@ -472,17 +552,7 @@ class MusicArtistCard extends ConsumerWidget {
                       offset: const Offset(0, 5))
                 ],
               ),
-              child: thumbnail == null
-                  ? fallback
-                  : ClipOval(
-                      child: Image.network(
-                        thumbnail,
-                        width: 78,
-                        height: 78,
-                        fit: BoxFit.cover,
-                        errorBuilder: (_, __, ___) => fallback,
-                      ),
-                    ),
+              child: fallback,
             ),
             Positioned(
               right: 2,
@@ -578,7 +648,9 @@ class LanguageTabBrowser extends StatelessWidget {
               if (showArtists) ...[
                 SectionHeader(title: _musicArtistSectionTitle(language)),
                 MusicArtistGrid(
-                    language: language, artists: topMusicArtists[language]!),
+                    key: ValueKey(language),
+                    language: language,
+                    artists: topMusicArtists[language]!),
               ],
             ]);
           },
